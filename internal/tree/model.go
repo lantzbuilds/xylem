@@ -2,6 +2,7 @@ package tree
 
 import (
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -232,6 +233,8 @@ func (m Model) SelectedPath() string {
 }
 
 func (m Model) NavigateTo(path string) Model {
+	m.expandAncestors(path)
+
 	flat := m.flatNodes()
 	for i, node := range flat {
 		if node.Path == path {
@@ -241,4 +244,36 @@ func (m Model) NavigateTo(path string) Model {
 		}
 	}
 	return m
+}
+
+func (m Model) expandAncestors(path string) {
+	rel, err := filepath.Rel(m.rootPath, path)
+	if err != nil {
+		return
+	}
+
+	parts := strings.Split(rel, string(filepath.Separator))
+	current := m.root
+
+	for i := 0; i < len(parts)-1; i++ {
+		if !current.Expanded {
+			current.Expanded = true
+			current.LoadChildren(m.ignore)
+		}
+		found := false
+		for _, child := range current.Children {
+			if child.Name == parts[i] && child.IsDir {
+				current = child
+				found = true
+				break
+			}
+		}
+		if !found {
+			return
+		}
+	}
+	if !current.Expanded {
+		current.Expanded = true
+		current.LoadChildren(m.ignore)
+	}
 }
