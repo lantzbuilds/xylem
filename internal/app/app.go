@@ -32,8 +32,9 @@ type App struct {
 	focus     int
 	width     int
 	height    int
-	rootPath  string
-	showHelp  bool
+	rootPath   string
+	showHelp   bool
+	fullScreen bool
 }
 
 func NewApp(path string, showLines bool, themeName string) App {
@@ -128,11 +129,31 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 
 		if a.focus == focusTree {
+			switch msg.String() {
+			case "enter":
+				path := a.tree.SelectedPath()
+				info, err := os.Stat(path)
+				if err == nil && !info.IsDir() {
+					a.fullScreen = true
+					a.focus = focusPreview
+					a.preview = a.preview.SetSize(a.width, a.height-1)
+					return a, nil
+				}
+			}
 			updated, cmd := a.tree.Update(msg)
 			a.tree = updated.(itree.Model)
 			return a, cmd
 		}
 		if a.focus == focusPreview {
+			switch msg.String() {
+			case "esc":
+				if a.fullScreen {
+					a.fullScreen = false
+					a.focus = focusTree
+					a = a.resize()
+					return a, nil
+				}
+			}
 			updated, cmd := a.preview.Update(msg)
 			a.preview = updated
 			return a, cmd
@@ -180,6 +201,13 @@ func (a App) resize() App {
 func (a App) View() string {
 	if a.width == 0 {
 		return "loading..."
+	}
+
+	if a.fullScreen {
+		previewStyle := lipgloss.NewStyle().
+			Width(a.width).
+			Height(a.height - 1)
+		return previewStyle.Render(a.preview.View()) + "\n" + a.statusbar.View()
 	}
 
 	contentHeight := a.height - 1
