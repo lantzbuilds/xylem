@@ -1,0 +1,67 @@
+# xylem
+
+A terminal file browser with syntax highlighting. Navigate your codebase and preview any file — like `glow`, but for all file types.
+
+## Install
+
+```bash
+go install github.com/lantzbuilds/xylem@latest
+```
+
+Or download a binary from [Releases](https://github.com/lantzbuilds/xylem/releases).
+
+## Usage
+
+```bash
+# Browse current directory
+xylem
+
+# Browse a specific path
+xylem ./src
+
+# Start with line numbers
+xylem --lines
+
+# Use a specific theme
+xylem --theme dracula
+```
+
+## Key Bindings
+
+| Key | Action |
+|---|---|
+| `Tab` | Switch focus (tree/preview) |
+| `j/k` `↑/↓` | Navigate / scroll |
+| `h/l` `←/→` | Collapse / expand directory |
+| `Enter` | Expand dir / full-screen file |
+| `Esc` | Back to split view |
+| `/` | Fuzzy file finder |
+| `n` | Toggle line numbers |
+| `t` | Cycle syntax theme |
+| `?` | Help |
+| `q` | Quit |
+
+### Preview (when focused)
+
+| Key | Action |
+|---|---|
+| `Ctrl+u` / `Page Up` | Scroll up half-page |
+| `Ctrl+d` / `Page Down` | Scroll down half-page |
+| `g/G` | Jump to top / bottom |
+
+## Themes
+
+Cycle with `t`: monokai, dracula, github, solarized-dark, solarized-light, nord, onedark, gruvbox.
+
+## Features
+
+- Syntax highlighting for 500+ languages via [Chroma](https://github.com/alecthomas/chroma)
+- Lazy directory loading
+- Respects `.gitignore`
+- Binary file detection
+- Mouse support
+- Built with [Bubble Tea](https://github.com/charmbracelet/bubbletea)
+
+## License
+
+MIT
