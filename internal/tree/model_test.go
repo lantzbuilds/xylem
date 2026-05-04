@@ -263,3 +263,48 @@ func TestTreeFlatNodesSkipsRoot(t *testing.T) {
 		}
 	}
 }
+
+func TestTreeRefreshPicksUpNewFiles(t *testing.T) {
+	dir := setupTestDir(t)
+	m := NewModel(dir, 40, 20)
+
+	initialCount := len(m.flatNodes())
+
+	os.WriteFile(filepath.Join(dir, "new_file.txt"), []byte("hello"), 0o644)
+
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}})
+	um := updated.(Model)
+
+	newCount := len(um.flatNodes())
+	if newCount != initialCount+1 {
+		t.Errorf("expected %d nodes after refresh, got %d", initialCount+1, newCount)
+	}
+
+	found := false
+	for _, n := range um.flatNodes() {
+		if n.Name == "new_file.txt" {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected new_file.txt to appear after refresh")
+	}
+}
+
+func TestTreeRefreshPicksUpDeletedFiles(t *testing.T) {
+	dir := setupTestDir(t)
+	m := NewModel(dir, 40, 20)
+
+	initialCount := len(m.flatNodes())
+
+	os.Remove(filepath.Join(dir, "README.md"))
+
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}})
+	um := updated.(Model)
+
+	newCount := len(um.flatNodes())
+	if newCount != initialCount-1 {
+		t.Errorf("expected %d nodes after refresh, got %d", initialCount-1, newCount)
+	}
+}

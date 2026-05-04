@@ -5,6 +5,10 @@ A terminal file browser with syntax highlighting. Navigate your codebase and pre
 ## Install
 
 ```bash
+# Homebrew
+brew install lantzbuilds/tap/xylem
+
+# Go
 go install github.com/lantzbuilds/xylem@latest
 ```
 
@@ -38,6 +42,7 @@ xylem --theme dracula
 | `/` | Fuzzy file finder |
 | `n` | Toggle line numbers |
 | `t` | Cycle syntax theme |
+| `r` | Refresh directory |
 | `?` | Help |
 | `q` | Quit |
 
@@ -51,7 +56,7 @@ xylem --theme dracula
 
 ## Themes
 
-Cycle with `t`: monokai, dracula, github, solarized-dark, solarized-light, nord, onedark, gruvbox.
+Cycle with `t`: monokai, dracula, github, solarized-dark, solarized-light, nord, onedark, gruvbox, catppuccin-mocha, catppuccin-latte, catppuccin-frappe, catppuccin-macchiato.
 
 ## Features
 
