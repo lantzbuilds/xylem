@@ -33,6 +33,7 @@ type App struct {
 	width     int
 	height    int
 	rootPath  string
+	showHelp  bool
 }
 
 func NewApp(path string, showLines bool, themeName string) App {
@@ -86,6 +87,18 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return a, cmd
 		}
 
+		if a.showHelp {
+			switch msg.String() {
+			case "?", "esc", "q", "ctrl+c":
+				if msg.String() == "q" || msg.String() == "ctrl+c" {
+					return a, tea.Quit
+				}
+				a.showHelp = false
+				return a, nil
+			}
+			return a, nil
+		}
+
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return a, tea.Quit
@@ -108,6 +121,9 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			a.finder = a.finder.SetFiles(a.collectFiles())
 			a.finder = a.finder.Open()
 			a.focus = focusFinder
+			return a, nil
+		case "?":
+			a.showHelp = !a.showHelp
 			return a, nil
 		}
 
@@ -187,12 +203,52 @@ func (a App) View() string {
 	content := lipgloss.JoinHorizontal(lipgloss.Top, treeView, previewView)
 	result := content + "\n" + a.statusbar.View()
 
+	if a.showHelp {
+		helpView := a.helpView()
+		result = placeCentered(result, helpView, a.width, a.height)
+	}
+
 	if a.finder.Active() {
 		finderView := a.finder.View()
 		result = placeCentered(result, finderView, a.width, a.height)
 	}
 
 	return result
+}
+
+func (a App) helpView() string {
+	help := `
+  Key Bindings
+
+  Global
+  ──────────────────────
+  Tab       Switch focus
+  /         Fuzzy finder
+  n         Line numbers
+  t         Cycle theme
+  ?         This help
+  q         Quit
+
+  Tree
+  ──────────────────────
+  j/k ↑/↓   Navigate
+  h/l ←/→   Collapse/Expand
+  Enter     Toggle dir / view file
+  g/G       Top / Bottom
+
+  Preview
+  ──────────────────────
+  j/k ↑/↓       Scroll
+  Ctrl+u/d      Half page
+  PgUp/PgDn     Half page
+  g/G           Top / Bottom
+`
+	style := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("62")).
+		Padding(1, 2)
+
+	return style.Render(help)
 }
 
 func (a App) collectFiles() []string {
