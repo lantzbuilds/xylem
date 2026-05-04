@@ -3,6 +3,7 @@ package tree
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -95,5 +96,170 @@ func TestTreeExpandCollapse(t *testing.T) {
 	collapsedFlat := um2.flatNodes()
 	if len(collapsedFlat) != len(flat) {
 		t.Error("expected same node count after collapsing src/")
+	}
+}
+
+func setupNestedTestDir(t *testing.T) (string, string) {
+	t.Helper()
+	dir := t.TempDir()
+	deepDir := filepath.Join(dir, "src", "internal", "deep")
+	os.MkdirAll(deepDir, 0o755)
+	filePath := filepath.Join(deepDir, "file.go")
+	os.WriteFile(filePath, []byte("package deep"), 0o644)
+	os.WriteFile(filepath.Join(dir, "README.md"), []byte("# readme"), 0o644)
+	return dir, filePath
+}
+
+func TestTreeNavigateToNestedFile(t *testing.T) {
+	dir, filePath := setupNestedTestDir(t)
+	m := NewModel(dir, 80, 40)
+
+	initialFlat := m.flatNodes()
+	for _, n := range initialFlat {
+		if n.Path == filePath {
+			t.Fatal("file.go should not be in flatNodes before NavigateTo (src is collapsed)")
+		}
+	}
+
+	m = m.NavigateTo(filePath)
+
+	flat := m.flatNodes()
+	found := false
+	for _, n := range flat {
+		if n.Path == filePath {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Error("expected file.go to be in flatNodes after NavigateTo")
+	}
+	if flat[m.cursor].Path != filePath {
+		t.Errorf("expected cursor to point to file.go, got %s", flat[m.cursor].Path)
+	}
+}
+
+func TestTreeNavigateToNonexistent(t *testing.T) {
+	dir := setupTestDir(t)
+	m := NewModel(dir, 40, 20)
+
+	initialCursor := m.cursor
+	m = m.NavigateTo(filepath.Join(dir, "does", "not", "exist.go"))
+
+	if m.cursor != initialCursor {
+		t.Errorf("cursor should not change for nonexistent path, got %d", m.cursor)
+	}
+}
+
+func TestTreeJumpToTop(t *testing.T) {
+	dir := setupTestDir(t)
+	m := NewModel(dir, 40, 20)
+
+	// Move cursor down a few times
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
+	updated, _ = updated.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
+	updated, _ = updated.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
+
+	// Jump to top with 'g'
+	updated, _ = updated.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'g'}})
+	um := updated.(Model)
+
+	if um.cursor != 0 {
+		t.Errorf("expected cursor at 0 after 'g', got %d", um.cursor)
+	}
+}
+
+func TestTreeJumpToBottom(t *testing.T) {
+	dir := setupTestDir(t)
+	m := NewModel(dir, 40, 20)
+
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'G'}})
+	um := updated.(Model)
+
+	flat := um.flatNodes()
+	expected := len(flat) - 1
+	if um.cursor != expected {
+		t.Errorf("expected cursor at %d after 'G', got %d", expected, um.cursor)
+	}
+}
+
+func TestTreeEnterOnDirectory(t *testing.T) {
+	dir := setupTestDir(t)
+	m := NewModel(dir, 40, 20)
+
+	flat := m.flatNodes()
+	var srcIdx int
+	for i, n := range flat {
+		if n.Name == "src" {
+			srcIdx = i
+			break
+		}
+	}
+	m.cursor = srcIdx
+
+	// Enter expands
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	um := updated.(Model)
+	expandedFlat := um.flatNodes()
+	if len(expandedFlat) <= len(flat) {
+		t.Error("expected more nodes after Enter on directory (expand)")
+	}
+
+	// Enter again collapses
+	updated2, _ := um.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	um2 := updated2.(Model)
+	collapsedFlat := um2.flatNodes()
+	if len(collapsedFlat) != len(flat) {
+		t.Error("expected original node count after second Enter (collapse)")
+	}
+}
+
+func TestTreeViewRendersContent(t *testing.T) {
+	dir := setupTestDir(t)
+	m := NewModel(dir, 80, 40)
+
+	view := m.View()
+
+	if !strings.Contains(view, "src") {
+		t.Error("expected View() to contain 'src'")
+	}
+	if !strings.Contains(view, "README.md") {
+		t.Error("expected View() to contain 'README.md'")
+	}
+	if !strings.Contains(view, "go.mod") {
+		t.Error("expected View() to contain 'go.mod'")
+	}
+}
+
+func TestTreeSelectedPath(t *testing.T) {
+	dir := setupTestDir(t)
+	m := NewModel(dir, 40, 20)
+
+	flat := m.flatNodes()
+	if len(flat) == 0 {
+		t.Fatal("expected at least one node")
+	}
+
+	if m.SelectedPath() != flat[0].Path {
+		t.Errorf("expected SelectedPath() to return %s, got %s", flat[0].Path, m.SelectedPath())
+	}
+
+	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
+	um := updated.(Model)
+
+	if um.SelectedPath() != flat[1].Path {
+		t.Errorf("expected SelectedPath() to return %s after moving down, got %s", flat[1].Path, um.SelectedPath())
+	}
+}
+
+func TestTreeFlatNodesSkipsRoot(t *testing.T) {
+	dir := setupTestDir(t)
+	m := NewModel(dir, 40, 20)
+
+	flat := m.flatNodes()
+	for _, n := range flat {
+		if n.Name == "." {
+			t.Error("flatNodes should not include the root node (name '.')")
+		}
 	}
 }
