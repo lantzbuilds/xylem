@@ -44,7 +44,10 @@ func (n *Node) LoadChildren(ignore IgnoreChecker) error {
 		fullPath := filepath.Join(n.Path, name)
 
 		if ignore != nil {
-			rel, _ := filepath.Rel(filepath.Dir(n.Path), fullPath)
+			rel, _ := filepath.Rel(n.Path, fullPath)
+			if entry.IsDir() {
+				rel += "/"
+			}
 			if ignore.MatchesPath(rel) {
 				continue
 			}
