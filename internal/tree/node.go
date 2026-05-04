@@ -1,0 +1,90 @@
+package tree
+
+import (
+	"os"
+	"path/filepath"
+	"sort"
+	"strings"
+)
+
+type IgnoreChecker interface {
+	MatchesPath(path string) bool
+}
+
+type Node struct {
+	Path     string
+	Name     string
+	IsDir    bool
+	Expanded bool
+	Children []*Node
+}
+
+func NewNode(path, name string, isDir bool) *Node {
+	return &Node{
+		Path:  path,
+		Name:  name,
+		IsDir: isDir,
+	}
+}
+
+var defaultIgnore = map[string]bool{
+	".git":         true,
+	"node_modules": true,
+}
+
+func (n *Node) LoadChildren(ignore IgnoreChecker) error {
+	entries, err := os.ReadDir(n.Path)
+	if err != nil {
+		return err
+	}
+
+	n.Children = nil
+	for _, entry := range entries {
+		name := entry.Name()
+		fullPath := filepath.Join(n.Path, name)
+
+		if ignore != nil {
+			rel, _ := filepath.Rel(filepath.Dir(n.Path), fullPath)
+			if ignore.MatchesPath(rel) {
+				continue
+			}
+		} else if defaultIgnore[name] {
+			continue
+		}
+
+		child := NewNode(fullPath, name, entry.IsDir())
+		n.Children = append(n.Children, child)
+	}
+
+	sort.Slice(n.Children, func(i, j int) bool {
+		a, b := n.Children[i], n.Children[j]
+		if a.IsDir != b.IsDir {
+			return a.IsDir
+		}
+		return strings.ToLower(a.Name) < strings.ToLower(b.Name)
+	})
+
+	return nil
+}
+
+func (n *Node) Flatten() []*Node {
+	var result []*Node
+	result = append(result, n)
+	if n.IsDir && n.Expanded {
+		for _, child := range n.Children {
+			result = append(result, child.Flatten()...)
+		}
+	}
+	return result
+}
+
+func (n *Node) Depth(root string) int {
+	rel, err := filepath.Rel(root, n.Path)
+	if err != nil {
+		return 0
+	}
+	if rel == "." {
+		return 0
+	}
+	return strings.Count(rel, string(filepath.Separator))
+}
