@@ -128,6 +128,13 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "?":
 			a.showHelp = !a.showHelp
 			return a, nil
+		case "r":
+			updated, cmd := a.tree.Update(msg)
+			a.tree = updated.(itree.Model)
+			if path := a.preview.FilePath(); path != "" {
+				a.preview = a.preview.LoadFile(path)
+			}
+			return a, cmd
 		}
 
 		if a.focus == focusTree {
@@ -294,6 +301,7 @@ func (a App) helpView() string {
   /         Fuzzy finder
   n         Line numbers
   t         Cycle theme
+  r         Refresh
   ?         This help
   q         Quit
 

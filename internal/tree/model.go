@@ -136,6 +136,15 @@ func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.cursor = maxIdx
 		m.ensureVisible()
 		return m, m.selectCmd()
+	case "r":
+		m.refresh()
+		if m.cursor > len(m.flatNodes())-1 {
+			m.cursor = len(m.flatNodes()) - 1
+		}
+		if m.cursor < 0 {
+			m.cursor = 0
+		}
+		return m, m.selectCmd()
 	}
 
 	return m, nil
@@ -170,6 +179,20 @@ func (m Model) flatNodes() []*Node {
 		return all[1:]
 	}
 	return all
+}
+
+func (m *Model) refresh() {
+	m.refreshNode(m.root)
+}
+
+func (m *Model) refreshNode(n *Node) {
+	if !n.IsDir || !n.Expanded {
+		return
+	}
+	n.LoadChildren(m.ignore)
+	for _, child := range n.Children {
+		m.refreshNode(child)
+	}
 }
 
 func (m Model) SetSize(w, h int) Model {

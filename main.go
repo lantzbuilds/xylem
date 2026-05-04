@@ -36,6 +36,7 @@ Key Bindings:
   /         Fuzzy file finder
   n         Toggle line numbers
   t         Cycle theme
+  r         Refresh directory
   ?         Full help overlay
   q         Quit
 `)
