@@ -155,6 +155,12 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					a = a.resize()
 					return a, nil
 				}
+			case "g":
+				a.preview = a.preview.GotoTop()
+				return a, nil
+			case "G":
+				a.preview = a.preview.GotoBottom()
+				return a, nil
 			}
 			updated, cmd := a.preview.Update(msg)
 			a.preview = updated

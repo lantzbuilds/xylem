@@ -157,6 +157,16 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	return m, cmd
 }
 
+func (m Model) GotoTop() Model {
+	m.viewport.GotoTop()
+	return m
+}
+
+func (m Model) GotoBottom() Model {
+	m.viewport.GotoBottom()
+	return m
+}
+
 func (m Model) View() string {
 	if m.errMsg != "" {
 		dim := lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
