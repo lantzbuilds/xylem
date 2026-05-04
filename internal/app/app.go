@@ -1,11 +1,14 @@
 package app
 
 import (
+	"os"
 	"path/filepath"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 
+	"github.com/lantzbuilds/xylem/internal/finder"
 	"github.com/lantzbuilds/xylem/internal/preview"
 	"github.com/lantzbuilds/xylem/internal/statusbar"
 	"github.com/lantzbuilds/xylem/internal/theme"
@@ -23,6 +26,7 @@ const treePct = 0.30
 type App struct {
 	tree      itree.Model
 	preview   preview.Model
+	finder    finder.Model
 	statusbar statusbar.Model
 	theme     *theme.Manager
 	focus     int
@@ -54,6 +58,7 @@ func NewApp(path string, showLines bool, themeName string) App {
 		a.preview = a.preview.ToggleLineNumbers()
 	}
 	a.statusbar = statusbar.New(120).SetTheme(tm.Current())
+	a.finder = finder.New(nil, 120, 20)
 
 	return a
 }
@@ -70,6 +75,17 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return a.resize(), nil
 
 	case tea.KeyMsg:
+		// Route to finder first when active, so keystrokes aren't
+		// intercepted by global shortcuts (e.g. typing 'q' or 't').
+		if a.focus == focusFinder {
+			updated, cmd := a.finder.Update(msg)
+			a.finder = updated
+			if !a.finder.Active() {
+				a.focus = focusTree
+			}
+			return a, cmd
+		}
+
 		switch msg.String() {
 		case "q", "ctrl+c":
 			return a, tea.Quit
@@ -88,6 +104,11 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			a.preview = a.preview.SetTheme(name)
 			a.statusbar = a.statusbar.SetTheme(name)
 			return a, nil
+		case "/":
+			a.finder = a.finder.SetFiles(a.collectFiles())
+			a.finder = a.finder.Open()
+			a.focus = focusFinder
+			return a, nil
 		}
 
 		if a.focus == focusTree {
@@ -100,6 +121,18 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			a.preview = updated
 			return a, cmd
 		}
+
+	case finder.FileFoundMsg:
+		a.focus = focusTree
+		fullPath := filepath.Join(a.rootPath, msg.Path)
+		a.preview = a.preview.LoadFile(fullPath)
+		a.tree = a.tree.NavigateTo(fullPath)
+		a.statusbar = a.statusbar.SetFile(
+			filepath.Base(fullPath),
+			a.preview.Language(),
+			a.preview.LineCount(),
+		)
+		return a, nil
 
 	case itree.FileSelectedMsg:
 		if !msg.IsDir {
@@ -152,5 +185,56 @@ func (a App) View() string {
 	previewView := previewStyle.Render(a.preview.View())
 
 	content := lipgloss.JoinHorizontal(lipgloss.Top, treeView, previewView)
-	return content + "\n" + a.statusbar.View()
+	result := content + "\n" + a.statusbar.View()
+
+	if a.finder.Active() {
+		finderView := a.finder.View()
+		result = placeCentered(result, finderView, a.width, a.height)
+	}
+
+	return result
+}
+
+func (a App) collectFiles() []string {
+	var files []string
+	filepath.Walk(a.rootPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+		name := info.Name()
+		if info.IsDir() {
+			if name == ".git" || name == "node_modules" {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		rel, _ := filepath.Rel(a.rootPath, path)
+		files = append(files, rel)
+		return nil
+	})
+	return files
+}
+
+func placeCentered(bg, overlay string, width, height int) string {
+	bgLines := strings.Split(bg, "\n")
+	ovLines := strings.Split(overlay, "\n")
+
+	startRow := (height - len(ovLines)) / 2
+	startCol := (width - lipgloss.Width(overlay)) / 2
+	if startCol < 0 {
+		startCol = 0
+	}
+
+	for i, ovLine := range ovLines {
+		row := startRow + i
+		if row >= 0 && row < len(bgLines) {
+			pad := ""
+			if startCol > 0 {
+				pad = strings.Repeat(" ", startCol)
+			}
+			bgLines[row] = pad + ovLine
+		}
+	}
+
+	return strings.Join(bgLines, "\n")
 }
