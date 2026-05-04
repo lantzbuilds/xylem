@@ -23,6 +23,7 @@ brews:
   - repository:
       owner: lantzbuilds
       name: homebrew-tap
+      token: "{{ .Env.TAP_GITHUB_TOKEN }}"
     homepage: https://github.com/lantzbuilds/xylem
     description: Terminal file browser with syntax highlighting
     license: MIT
