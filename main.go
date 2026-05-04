@@ -42,6 +42,13 @@ Key Bindings:
 	}
 	flag.Parse()
 
+	var themeExplicit bool
+	flag.Visit(func(f *flag.Flag) {
+		if f.Name == "theme" {
+			themeExplicit = true
+		}
+	})
+
 	if *showVersion {
 		fmt.Printf("xylem %s\n", version)
 		os.Exit(0)
@@ -62,7 +69,11 @@ Key Bindings:
 		os.Exit(1)
 	}
 
-	a := app.NewApp(path, *showLines, *themeName)
+	themeArg := ""
+	if themeExplicit {
+		themeArg = *themeName
+	}
+	a := app.NewApp(path, *showLines, themeArg)
 	p := tea.NewProgram(a, tea.WithAltScreen(), tea.WithMouseCellMotion())
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)

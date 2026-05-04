@@ -39,6 +39,7 @@ type App struct {
 
 func NewApp(path string, showLines bool, themeName string) App {
 	tm := theme.New()
+	tm.Load()
 	if themeName != "" {
 		tm.Set(themeName)
 	}
@@ -115,6 +116,7 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return a, nil
 		case "t":
 			name := a.theme.Next()
+			a.theme.Save()
 			a.preview = a.preview.SetTheme(name)
 			a.statusbar = a.statusbar.SetTheme(name)
 			return a, nil

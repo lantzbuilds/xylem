@@ -1,6 +1,10 @@
 package theme
 
 import (
+	"encoding/json"
+	"os"
+	"path/filepath"
+
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -60,6 +64,35 @@ func (m *Manager) CursorStyle() lipgloss.Style {
 	return lipgloss.NewStyle().
 		Background(lipgloss.Color("62")).
 		Foreground(lipgloss.Color("230"))
+}
+
+type config struct {
+	Theme string `json:"theme"`
+}
+
+func configPath() string {
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, ".config", "xylem", "config.json")
+}
+
+func (m *Manager) Load() {
+	data, err := os.ReadFile(configPath())
+	if err != nil {
+		return
+	}
+	var cfg config
+	if err := json.Unmarshal(data, &cfg); err != nil {
+		return
+	}
+	m.Set(cfg.Theme)
+}
+
+func (m *Manager) Save() {
+	cfg := config{Theme: m.Current()}
+	data, _ := json.MarshalIndent(cfg, "", "  ")
+	path := configPath()
+	os.MkdirAll(filepath.Dir(path), 0o755)
+	os.WriteFile(path, data, 0o644)
 }
 
 func (m *Manager) DimStyle() lipgloss.Style {
