@@ -13,6 +13,7 @@ type Model struct {
 	language string
 	lines    int
 	theme    string
+	focus    string
 }
 
 func New(width int) Model {
@@ -28,6 +29,11 @@ func (m Model) SetFile(filename, language string, lines int) Model {
 
 func (m Model) SetTheme(theme string) Model {
 	m.theme = theme
+	return m
+}
+
+func (m Model) SetFocus(focus string) Model {
+	m.focus = focus
 	return m
 }
 
@@ -48,9 +54,9 @@ func (m Model) View() string {
 
 	var left string
 	if m.filename != "" {
-		left = fmt.Sprintf(" %s │ %s │ %d lines", m.filename, m.language, m.lines)
+		left = fmt.Sprintf(" %s │ %s │ %d lines │ %s", m.filename, m.language, m.lines, m.focus)
 	} else {
-		left = " xylem"
+		left = fmt.Sprintf(" xylem │ %s", m.focus)
 	}
 
 	right := ""

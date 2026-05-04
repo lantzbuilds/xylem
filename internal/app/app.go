@@ -230,22 +230,40 @@ func (a App) View() string {
 	treeW := int(float64(a.width) * treePct)
 	previewW := a.width - treeW - 1
 
+	var treeBorderColor, previewBorderColor string
+	if a.focus == focusTree {
+		treeBorderColor = "62"
+		previewBorderColor = "238"
+	} else {
+		treeBorderColor = "238"
+		previewBorderColor = "62"
+	}
+
 	treeBorder := lipgloss.NewStyle().
 		Width(treeW).
 		Height(contentHeight).
 		BorderRight(true).
 		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(lipgloss.Color("238"))
+		BorderForeground(lipgloss.Color(treeBorderColor))
 
 	previewStyle := lipgloss.NewStyle().
 		Width(previewW).
-		Height(contentHeight)
+		Height(contentHeight).
+		BorderLeft(true).
+		BorderStyle(lipgloss.NormalBorder()).
+		BorderForeground(lipgloss.Color(previewBorderColor))
 
 	treeView := treeBorder.Render(a.tree.View())
 	previewView := previewStyle.Render(a.preview.View())
 
+	focusName := "tree"
+	if a.focus == focusPreview {
+		focusName = "preview"
+	}
+	sb := a.statusbar.SetFocus(focusName)
+
 	content := lipgloss.JoinHorizontal(lipgloss.Top, treeView, previewView)
-	result := content + "\n" + a.statusbar.View()
+	result := content + "\n" + sb.View()
 
 	if a.showHelp {
 		helpView := a.helpView()
