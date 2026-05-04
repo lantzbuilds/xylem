@@ -13,6 +13,10 @@ var themes = []string{
 	"nord",
 	"onedark",
 	"gruvbox",
+	"catppuccin-mocha",
+	"catppuccin-latte",
+	"catppuccin-frappe",
+	"catppuccin-macchiato",
 }
 
 type Manager struct {
