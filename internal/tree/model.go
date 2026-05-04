@@ -65,6 +65,24 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		return m.handleKey(msg)
+	case tea.MouseMsg:
+		if msg.Action == tea.MouseActionPress && msg.Button == tea.MouseButtonLeft {
+			clickedIdx := m.offset + msg.Y
+			flat := m.flatNodes()
+			if clickedIdx >= 0 && clickedIdx < len(flat) {
+				m.cursor = clickedIdx
+				node := flat[m.cursor]
+				if node.IsDir {
+					node.Expanded = !node.Expanded
+					if node.Expanded {
+						node.LoadChildren(m.ignore)
+					} else {
+						node.Children = nil
+					}
+				}
+				return m, m.selectCmd()
+			}
+		}
 	}
 	return m, nil
 }

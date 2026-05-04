@@ -181,6 +181,20 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			)
 		}
 		return a, nil
+
+	case tea.MouseMsg:
+		treeW := int(float64(a.width) * treePct)
+		if msg.X < treeW {
+			a.focus = focusTree
+			updated, cmd := a.tree.Update(msg)
+			a.tree = updated.(itree.Model)
+			return a, cmd
+		} else {
+			a.focus = focusPreview
+			updated, cmd := a.preview.Update(msg)
+			a.preview = updated
+			return a, cmd
+		}
 	}
 
 	return a, nil
