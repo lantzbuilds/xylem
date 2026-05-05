@@ -114,6 +114,9 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "n":
 			a.preview = a.preview.ToggleLineNumbers()
 			return a, nil
+		case "w":
+			a.preview = a.preview.ToggleWordWrap()
+			return a, nil
 		case "t":
 			name := a.theme.Next()
 			a.theme.Save()
@@ -300,6 +303,7 @@ func (a App) helpView() string {
   Tab       Switch focus
   /         Fuzzy finder
   n         Line numbers
+  w         Word wrap
   t         Cycle theme
   r         Refresh
   ?         This help

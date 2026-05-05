@@ -41,6 +41,7 @@ xylem --theme dracula
 | `Esc` | Back to split view |
 | `/` | Fuzzy file finder |
 | `n` | Toggle line numbers |
+| `w` | Toggle word wrap |
 | `t` | Cycle syntax theme |
 | `r` | Refresh directory |
 | `?` | Help |
