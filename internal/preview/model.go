@@ -9,6 +9,8 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/lipgloss"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/muesli/reflow/wordwrap"
+	"github.com/muesli/reflow/ansi"
 )
 
 const maxFileSize = 1024 * 1024
@@ -19,6 +21,7 @@ type Model struct {
 	language        string
 	lineCount       int
 	showLineNumbers bool
+	wordWrap        bool
 	theme           string
 	width           int
 	height          int
@@ -89,11 +92,10 @@ func (m Model) LoadFile(path string) Model {
 		m.lineCount++
 	}
 
-	highlighted, lang := Highlight(source, path, m.theme)
+	_, lang := Highlight(source, path, m.theme)
 	m.language = lang
 
-	content := m.applyLineNumbers(highlighted)
-	m.viewport.SetContent(content)
+	m.viewport.SetContent(m.renderContent())
 	m.viewport.GotoTop()
 
 	return m
@@ -121,11 +123,49 @@ func (m Model) applyLineNumbers(content string) string {
 	return b.String()
 }
 
+func (m Model) renderContent() string {
+	if m.rawContent == "" {
+		return ""
+	}
+	highlighted, _ := Highlight(m.rawContent, m.filePath, m.theme)
+	content := m.applyLineNumbers(highlighted)
+	if m.wordWrap {
+		content = m.wrapLines(content)
+	}
+	return content
+}
+
+func (m Model) wrapLines(content string) string {
+	wrapWidth := m.width
+	if m.showLineNumbers {
+		gutterWidth := len(fmt.Sprintf("%d", m.lineCount)) + 3
+		wrapWidth -= gutterWidth
+	}
+	if wrapWidth < 20 {
+		wrapWidth = 20
+	}
+
+	lines := strings.Split(content, "\n")
+	var b strings.Builder
+	for i, line := range lines {
+		lineWidth := ansi.PrintableRuneWidth(line)
+		if lineWidth > wrapWidth {
+			wrapped := wordwrap.String(line, wrapWidth)
+			b.WriteString(wrapped)
+		} else {
+			b.WriteString(line)
+		}
+		if i < len(lines)-1 {
+			b.WriteByte('\n')
+		}
+	}
+	return b.String()
+}
+
 func (m Model) SetTheme(theme string) Model {
 	m.theme = theme
 	if m.filePath != "" && m.errMsg == "" && m.rawContent != "" {
-		highlighted, _ := Highlight(m.rawContent, m.filePath, m.theme)
-		m.viewport.SetContent(m.applyLineNumbers(highlighted))
+		m.viewport.SetContent(m.renderContent())
 	}
 	return m
 }
@@ -133,11 +173,20 @@ func (m Model) SetTheme(theme string) Model {
 func (m Model) ToggleLineNumbers() Model {
 	m.showLineNumbers = !m.showLineNumbers
 	if m.filePath != "" && m.errMsg == "" && m.rawContent != "" {
-		highlighted, _ := Highlight(m.rawContent, m.filePath, m.theme)
-		m.viewport.SetContent(m.applyLineNumbers(highlighted))
+		m.viewport.SetContent(m.renderContent())
 	}
 	return m
 }
+
+func (m Model) ToggleWordWrap() Model {
+	m.wordWrap = !m.wordWrap
+	if m.filePath != "" && m.errMsg == "" && m.rawContent != "" {
+		m.viewport.SetContent(m.renderContent())
+	}
+	return m
+}
+
+func (m Model) WordWrapEnabled() bool { return m.wordWrap }
 
 func (m Model) SetSize(w, h int) Model {
 	m.width = w

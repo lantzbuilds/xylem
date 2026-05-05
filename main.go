@@ -35,6 +35,7 @@ Key Bindings:
   h/l       Collapse / expand directory
   /         Fuzzy file finder
   n         Toggle line numbers
+  w         Toggle word wrap
   t         Cycle theme
   r         Refresh directory
   ?         Full help overlay
