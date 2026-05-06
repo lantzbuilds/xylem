@@ -9,6 +9,7 @@ import (
 
 type Model struct {
 	width    int
+	rootName string
 	filename string
 	language string
 	lines    int
@@ -16,8 +17,8 @@ type Model struct {
 	focus    string
 }
 
-func New(width int) Model {
-	return Model{width: width}
+func New(width int, rootName string) Model {
+	return Model{width: width, rootName: rootName}
 }
 
 func (m Model) SetFile(filename, language string, lines int) Model {
@@ -54,7 +55,13 @@ func (m Model) View() string {
 
 	var left string
 	if m.filename != "" {
-		left = fmt.Sprintf(" %s │ %s │ %d lines │ %s", m.filename, m.language, m.lines, m.focus)
+		display := m.filename
+		if m.rootName != "" {
+			display = m.rootName + "/" + m.filename
+		}
+		left = fmt.Sprintf(" %s │ %s │ %d lines │ %s", display, m.language, m.lines, m.focus)
+	} else if m.rootName != "" {
+		left = fmt.Sprintf(" %s │ %s", m.rootName, m.focus)
 	} else {
 		left = fmt.Sprintf(" xylem │ %s", m.focus)
 	}
