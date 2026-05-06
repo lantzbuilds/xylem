@@ -60,7 +60,7 @@ func NewApp(path string, showLines bool, themeName string) App {
 	if showLines {
 		a.preview = a.preview.ToggleLineNumbers()
 	}
-	a.statusbar = statusbar.New(120).SetTheme(tm.Current())
+	a.statusbar = statusbar.New(120, filepath.Base(absPath)).SetTheme(tm.Current())
 	a.finder = finder.New(nil, 120, 20)
 
 	return a
@@ -182,8 +182,9 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		fullPath := filepath.Join(a.rootPath, msg.Path)
 		a.preview = a.preview.LoadFile(fullPath)
 		a.tree = a.tree.NavigateTo(fullPath)
+		rel, _ := filepath.Rel(a.rootPath, fullPath)
 		a.statusbar = a.statusbar.SetFile(
-			filepath.Base(fullPath),
+			rel,
 			a.preview.Language(),
 			a.preview.LineCount(),
 		)
@@ -192,8 +193,9 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case itree.FileSelectedMsg:
 		if !msg.IsDir {
 			a.preview = a.preview.LoadFile(msg.Path)
+			rel, _ := filepath.Rel(a.rootPath, msg.Path)
 			a.statusbar = a.statusbar.SetFile(
-				filepath.Base(msg.Path),
+				rel,
 				a.preview.Language(),
 				a.preview.LineCount(),
 			)

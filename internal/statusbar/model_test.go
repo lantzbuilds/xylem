@@ -6,13 +6,13 @@ import (
 )
 
 func TestStatusBarShowsFileInfo(t *testing.T) {
-	m := New(80)
-	m = m.SetFile("main.go", "Go", 42)
+	m := New(80, "xylem")
+	m = m.SetFile("src/main.go", "Go", 42)
 	m = m.SetTheme("monokai")
 
 	view := m.View()
-	if !strings.Contains(view, "main.go") {
-		t.Error("expected filename in status bar")
+	if !strings.Contains(view, "xylem/src/main.go") {
+		t.Error("expected root/relative path in status bar")
 	}
 	if !strings.Contains(view, "Go") {
 		t.Error("expected language in status bar")
@@ -26,9 +26,12 @@ func TestStatusBarShowsFileInfo(t *testing.T) {
 }
 
 func TestStatusBarEmpty(t *testing.T) {
-	m := New(80)
+	m := New(80, "myproject")
 	view := m.View()
 	if len(view) == 0 {
 		t.Error("expected non-empty status bar even with no file")
+	}
+	if !strings.Contains(view, "myproject") {
+		t.Error("expected root name in empty status bar")
 	}
 }
