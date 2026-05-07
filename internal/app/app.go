@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -14,6 +15,8 @@ import (
 	"github.com/lantzbuilds/xylem/internal/theme"
 	itree "github.com/lantzbuilds/xylem/internal/tree"
 )
+
+type flashTickMsg struct{}
 
 const (
 	focusTree    = 0
@@ -32,9 +35,11 @@ type App struct {
 	focus     int
 	width     int
 	height    int
-	rootPath   string
-	showHelp   bool
-	fullScreen bool
+	rootPath    string
+	showHelp    bool
+	fullScreen  bool
+	flashMsg    string
+	flashTicks  int
 }
 
 func NewApp(path string, showLines bool, themeName string) App {
@@ -72,6 +77,14 @@ func (a App) Init() tea.Cmd {
 
 func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case flashTickMsg:
+		a.flashTicks--
+		if a.flashTicks <= 0 {
+			a.flashMsg = ""
+			return a, nil
+		}
+		return a, tea.Tick(time.Second, func(_ time.Time) tea.Msg { return flashTickMsg{} })
+
 	case tea.WindowSizeMsg:
 		a.width = msg.Width
 		a.height = msg.Height
@@ -171,6 +184,20 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "G":
 				a.preview = a.preview.GotoBottom()
 				return a, nil
+			case "y":
+				if err := a.preview.CopyFile(); err != nil {
+					a, cmd := a.flash("copy failed: " + err.Error())
+					return a, cmd
+				}
+				a, cmd := a.flash("copied file to clipboard")
+				return a, cmd
+			case "Y":
+				if err := a.preview.CopyVisible(); err != nil {
+					a, cmd := a.flash("copy failed: " + err.Error())
+					return a, cmd
+				}
+				a, cmd := a.flash("copied visible lines to clipboard")
+				return a, cmd
 			}
 			updated, cmd := a.preview.Update(msg)
 			a.preview = updated
@@ -220,6 +247,12 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return a, nil
 }
 
+func (a App) flash(msg string) (App, tea.Cmd) {
+	a.flashMsg = msg
+	a.flashTicks = 3
+	return a, tea.Tick(time.Second, func(_ time.Time) tea.Msg { return flashTickMsg{} })
+}
+
 func (a App) resize() App {
 	contentHeight := a.height - 1
 	treeW := int(float64(a.width) * treePct)
@@ -241,7 +274,17 @@ func (a App) View() string {
 		previewStyle := lipgloss.NewStyle().
 			Width(a.width).
 			Height(a.height - 1)
-		return previewStyle.Render(a.preview.View()) + "\n" + a.statusbar.View()
+		fsStatus := a.statusbar.View()
+		if a.flashMsg != "" {
+			flashStyle := lipgloss.NewStyle().
+				Foreground(lipgloss.Color("229")).
+				Background(lipgloss.Color("62")).
+				Bold(true).
+				Padding(0, 1)
+			fsStatus = flashStyle.Render(a.flashMsg) +
+				strings.Repeat(" ", max(0, a.width-lipgloss.Width(a.flashMsg)-2))
+		}
+		return previewStyle.Render(a.preview.View()) + "\n" + fsStatus
 	}
 
 	contentHeight := a.height - 1
@@ -281,7 +324,17 @@ func (a App) View() string {
 	sb := a.statusbar.SetFocus(focusName)
 
 	content := lipgloss.JoinHorizontal(lipgloss.Top, treeView, previewView)
-	result := content + "\n" + sb.View()
+	statusLine := sb.View()
+	if a.flashMsg != "" {
+		flashStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("229")).
+			Background(lipgloss.Color("62")).
+			Bold(true).
+			Padding(0, 1)
+		statusLine = flashStyle.Render(a.flashMsg) +
+			strings.Repeat(" ", max(0, a.width-lipgloss.Width(a.flashMsg)-2))
+	}
+	result := content + "\n" + statusLine
 
 	if a.showHelp {
 		helpView := a.helpView()
@@ -324,6 +377,8 @@ func (a App) helpView() string {
   Ctrl+u/d      Half page
   PgUp/PgDn     Half page
   g/G           Top / Bottom
+  y             Copy file to clipboard
+  Y             Copy visible to clipboard
 `
 	style := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).

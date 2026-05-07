@@ -38,6 +38,8 @@ Key Bindings:
   w         Toggle word wrap
   t         Cycle theme
   r         Refresh directory
+  y         Copy file to clipboard (preview)
+  Y         Copy visible to clipboard (preview)
   ?         Full help overlay
   q         Quit
 `)

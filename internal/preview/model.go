@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/lipgloss"
 	tea "github.com/charmbracelet/bubbletea"
@@ -226,6 +227,26 @@ func (m Model) View() string {
 		return dim.Render("select a file to preview")
 	}
 	return m.viewport.View()
+}
+
+func (m Model) CopyFile() error {
+	if m.rawContent == "" {
+		return fmt.Errorf("no file loaded")
+	}
+	return clipboard.WriteAll(m.rawContent)
+}
+
+func (m Model) CopyVisible() error {
+	lines := strings.Split(m.rawContent, "\n")
+	top := m.viewport.YOffset
+	bottom := top + m.viewport.Height
+	if bottom > len(lines) {
+		bottom = len(lines)
+	}
+	if top >= len(lines) {
+		return fmt.Errorf("no visible content")
+	}
+	return clipboard.WriteAll(strings.Join(lines[top:bottom], "\n"))
 }
 
 func (m Model) FilePath() string   { return m.filePath }

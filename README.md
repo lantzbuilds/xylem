@@ -54,6 +54,8 @@ xylem --theme dracula
 | `Ctrl+u` / `Page Up` | Scroll up half-page |
 | `Ctrl+d` / `Page Down` | Scroll down half-page |
 | `g/G` | Jump to top / bottom |
+| `y` | Copy file to clipboard |
+| `Y` | Copy visible lines to clipboard |
 
 ## Themes
 
