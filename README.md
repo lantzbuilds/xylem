@@ -38,14 +38,19 @@ xylem --theme dracula
 | `j/k` `↑/↓` | Navigate / scroll |
 | `h/l` `←/→` | Collapse / expand directory |
 | `Enter` | Expand dir / full-screen file |
-| `Esc` | Back to split view |
-| `/` | Fuzzy file finder |
+| `Esc` | Back to split view / clear search |
 | `n` | Toggle line numbers |
 | `w` | Toggle word wrap |
 | `t` | Cycle syntax theme |
 | `r` | Refresh directory |
 | `?` | Help |
 | `q` | Quit |
+
+### Tree (when focused)
+
+| Key | Action |
+|---|---|
+| `/` | Fuzzy file finder |
 
 ### Preview (when focused)
 
@@ -54,6 +59,9 @@ xylem --theme dracula
 | `Ctrl+u` / `Page Up` | Scroll up half-page |
 | `Ctrl+d` / `Page Down` | Scroll down half-page |
 | `g/G` | Jump to top / bottom |
+| `/` | Search in file |
+| `n/N` | Next / previous match |
+| `Esc` | Clear search results |
 | `y` | Copy file to clipboard |
 | `Y` | Copy visible lines to clipboard |
 

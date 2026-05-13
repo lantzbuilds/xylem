@@ -33,13 +33,15 @@ Key Bindings:
   Tab       Switch focus (tree/preview)
   j/k       Navigate / scroll
   h/l       Collapse / expand directory
-  /         Fuzzy file finder
-  n         Toggle line numbers
+  /         Search in file (preview) / file finder (tree)
+  n/N       Next / prev match (after search)
+  n         Toggle line numbers (no active search)
   w         Toggle word wrap
   t         Cycle theme
   r         Refresh directory
   y         Copy file to clipboard (preview)
   Y         Copy visible to clipboard (preview)
+  Esc       Clear search / exit fullscreen
   ?         Full help overlay
   q         Quit
 `)

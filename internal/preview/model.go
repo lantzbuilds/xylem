@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/lipgloss"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/lantzbuilds/xylem/internal/search"
 	"github.com/muesli/reflow/wordwrap"
 	"github.com/muesli/reflow/ansi"
 )
@@ -28,6 +29,9 @@ type Model struct {
 	height          int
 	errMsg          string
 	rawContent      string
+	searchQuery     string
+	searchMatches   []search.Match
+	searchIndex     int
 }
 
 func NewModel(width, height int, theme string) Model {
@@ -46,6 +50,9 @@ func (m Model) LoadFile(path string) Model {
 	m.rawContent = ""
 	m.language = ""
 	m.lineCount = 0
+	m.searchQuery = ""
+	m.searchMatches = nil
+	m.searchIndex = 0
 
 	info, err := os.Stat(path)
 	if err != nil {
@@ -129,11 +136,35 @@ func (m Model) renderContent() string {
 		return ""
 	}
 	highlighted, _ := Highlight(m.rawContent, m.filePath, m.theme)
+
+	if m.searchQuery != "" && len(m.searchMatches) > 0 {
+		highlighted = m.applySearchHighlight(highlighted)
+	}
+
 	content := m.applyLineNumbers(highlighted)
 	if m.wordWrap {
 		content = m.wrapLines(content)
 	}
 	return content
+}
+
+func (m Model) applySearchHighlight(content string) string {
+	matchLines := make(map[int]bool)
+	currentLine := -1
+	for i, match := range m.searchMatches {
+		matchLines[match.Line] = true
+		if i == m.searchIndex {
+			currentLine = match.Line
+		}
+	}
+
+	lines := strings.Split(content, "\n")
+	for i, line := range lines {
+		if matchLines[i] {
+			lines[i] = search.HighlightLine(line, m.searchQuery, i == currentLine)
+		}
+	}
+	return strings.Join(lines, "\n")
 }
 
 func (m Model) wrapLines(content string) string {
@@ -248,6 +279,67 @@ func (m Model) CopyVisible() error {
 	}
 	return clipboard.WriteAll(strings.Join(lines[top:bottom], "\n"))
 }
+
+func (m Model) Search(query string) Model {
+	m.searchQuery = query
+	m.searchMatches = search.SearchFile(m.rawContent, query)
+	m.searchIndex = 0
+	if len(m.searchMatches) > 0 {
+		m.viewport.SetContent(m.renderContent())
+		m = m.scrollToCurrentMatch()
+	} else {
+		m.viewport.SetContent(m.renderContent())
+	}
+	return m
+}
+
+func (m Model) NextMatch() Model {
+	if len(m.searchMatches) == 0 {
+		return m
+	}
+	m.searchIndex = (m.searchIndex + 1) % len(m.searchMatches)
+	m.viewport.SetContent(m.renderContent())
+	return m.scrollToCurrentMatch()
+}
+
+func (m Model) PrevMatch() Model {
+	if len(m.searchMatches) == 0 {
+		return m
+	}
+	m.searchIndex--
+	if m.searchIndex < 0 {
+		m.searchIndex = len(m.searchMatches) - 1
+	}
+	m.viewport.SetContent(m.renderContent())
+	return m.scrollToCurrentMatch()
+}
+
+func (m Model) ClearSearch() Model {
+	m.searchQuery = ""
+	m.searchMatches = nil
+	m.searchIndex = 0
+	if m.rawContent != "" {
+		m.viewport.SetContent(m.renderContent())
+	}
+	return m
+}
+
+func (m Model) scrollToCurrentMatch() Model {
+	if len(m.searchMatches) == 0 {
+		return m
+	}
+	line := m.searchMatches[m.searchIndex].Line
+	center := line - m.viewport.Height/2
+	if center < 0 {
+		center = 0
+	}
+	m.viewport.SetYOffset(center)
+	return m
+}
+
+func (m Model) SearchQuery() string      { return m.searchQuery }
+func (m Model) SearchMatchCount() int    { return len(m.searchMatches) }
+func (m Model) SearchIndex() int         { return m.searchIndex }
 
 func (m Model) FilePath() string   { return m.filePath }
 func (m Model) Language() string   { return m.language }

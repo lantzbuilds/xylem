@@ -1,6 +1,7 @@
 package app
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -40,6 +41,8 @@ type App struct {
 	fullScreen  bool
 	flashMsg    string
 	flashTicks  int
+	searchMode  bool
+	searchBuf   string
 }
 
 func NewApp(path string, showLines bool, themeName string, version string) App {
@@ -91,8 +94,41 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return a.resize(), nil
 
 	case tea.KeyMsg:
-		// Route to finder first when active, so keystrokes aren't
-		// intercepted by global shortcuts (e.g. typing 'q' or 't').
+		// Search input mode — capture all keystrokes
+		if a.searchMode {
+			switch msg.Type {
+			case tea.KeyEscape:
+				a.searchMode = false
+				a.searchBuf = ""
+				return a, nil
+			case tea.KeyEnter:
+				query := a.searchBuf
+				a.searchMode = false
+				a.searchBuf = ""
+				if query != "" {
+					a.preview = a.preview.Search(query)
+					count := a.preview.SearchMatchCount()
+					if count == 0 {
+						a, cmd := a.flash("no matches")
+						return a, cmd
+					}
+					a, cmd := a.flash(fmt.Sprintf("%d match(es)", count))
+					return a, cmd
+				}
+				return a, nil
+			case tea.KeyBackspace:
+				if len(a.searchBuf) > 0 {
+					a.searchBuf = a.searchBuf[:len(a.searchBuf)-1]
+				}
+				return a, nil
+			case tea.KeyRunes:
+				a.searchBuf += string(msg.Runes)
+				return a, nil
+			}
+			return a, nil
+		}
+
+		// Route to finder when active
 		if a.focus == focusFinder {
 			updated, cmd := a.finder.Update(msg)
 			a.finder = updated
@@ -112,6 +148,24 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return a, nil
 			}
 			return a, nil
+		}
+
+		// When search results are active, n/N navigate matches
+		if a.preview.SearchMatchCount() > 0 {
+			switch msg.String() {
+			case "n":
+				a.preview = a.preview.NextMatch()
+				idx := a.preview.SearchIndex() + 1
+				total := a.preview.SearchMatchCount()
+				a, cmd := a.flash(fmt.Sprintf("match %d/%d", idx, total))
+				return a, cmd
+			case "N":
+				a.preview = a.preview.PrevMatch()
+				idx := a.preview.SearchIndex() + 1
+				total := a.preview.SearchMatchCount()
+				a, cmd := a.flash(fmt.Sprintf("match %d/%d", idx, total))
+				return a, cmd
+			}
 		}
 
 		switch msg.String() {
@@ -137,6 +191,12 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			a.statusbar = a.statusbar.SetTheme(name)
 			return a, nil
 		case "/":
+			if a.focus == focusPreview {
+				a.searchMode = true
+				a.searchBuf = ""
+				a.preview = a.preview.ClearSearch()
+				return a, nil
+			}
 			a.finder = a.finder.SetFiles(a.collectFiles())
 			a.finder = a.finder.Open()
 			a.focus = focusFinder
@@ -172,6 +232,10 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if a.focus == focusPreview {
 			switch msg.String() {
 			case "esc":
+				if a.preview.SearchMatchCount() > 0 {
+					a.preview = a.preview.ClearSearch()
+					return a, nil
+				}
 				if a.fullScreen {
 					a.fullScreen = false
 					a.focus = focusTree
@@ -247,6 +311,40 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return a, nil
 }
 
+func (a App) buildStatusLine() string {
+	if a.searchMode {
+		searchStyle := lipgloss.NewStyle().
+			Background(lipgloss.Color("236")).
+			Foreground(lipgloss.Color("252"))
+		promptStyle := lipgloss.NewStyle().
+			Background(lipgloss.Color("236")).
+			Foreground(lipgloss.Color("62")).
+			Bold(true)
+		line := promptStyle.Render(" / ") + searchStyle.Render(a.searchBuf+"█")
+		gap := a.width - lipgloss.Width(line)
+		if gap > 0 {
+			line += searchStyle.Render(strings.Repeat(" ", gap))
+		}
+		return line
+	}
+
+	if a.flashMsg != "" {
+		flashStyle := lipgloss.NewStyle().
+			Foreground(lipgloss.Color("229")).
+			Background(lipgloss.Color("62")).
+			Bold(true).
+			Padding(0, 1)
+		return flashStyle.Render(a.flashMsg) +
+			strings.Repeat(" ", max(0, a.width-lipgloss.Width(a.flashMsg)-2))
+	}
+
+	focusName := "tree"
+	if a.focus == focusPreview {
+		focusName = "preview"
+	}
+	return a.statusbar.SetFocus(focusName).View()
+}
+
 func (a App) flash(msg string) (App, tea.Cmd) {
 	a.flashMsg = msg
 	a.flashTicks = 3
@@ -274,16 +372,7 @@ func (a App) View() string {
 		previewStyle := lipgloss.NewStyle().
 			Width(a.width).
 			Height(a.height - 1)
-		fsStatus := a.statusbar.View()
-		if a.flashMsg != "" {
-			flashStyle := lipgloss.NewStyle().
-				Foreground(lipgloss.Color("229")).
-				Background(lipgloss.Color("62")).
-				Bold(true).
-				Padding(0, 1)
-			fsStatus = flashStyle.Render(a.flashMsg) +
-				strings.Repeat(" ", max(0, a.width-lipgloss.Width(a.flashMsg)-2))
-		}
+		fsStatus := a.buildStatusLine()
 		return previewStyle.Render(a.preview.View()) + "\n" + fsStatus
 	}
 
@@ -317,23 +406,8 @@ func (a App) View() string {
 	treeView := treeBorder.Render(a.tree.View())
 	previewView := previewStyle.Render(a.preview.View())
 
-	focusName := "tree"
-	if a.focus == focusPreview {
-		focusName = "preview"
-	}
-	sb := a.statusbar.SetFocus(focusName)
-
 	content := lipgloss.JoinHorizontal(lipgloss.Top, treeView, previewView)
-	statusLine := sb.View()
-	if a.flashMsg != "" {
-		flashStyle := lipgloss.NewStyle().
-			Foreground(lipgloss.Color("229")).
-			Background(lipgloss.Color("62")).
-			Bold(true).
-			Padding(0, 1)
-		statusLine = flashStyle.Render(a.flashMsg) +
-			strings.Repeat(" ", max(0, a.width-lipgloss.Width(a.flashMsg)-2))
-	}
+	statusLine := a.buildStatusLine()
 	result := content + "\n" + statusLine
 
 	if a.showHelp {
@@ -356,7 +430,6 @@ func (a App) helpView() string {
   Global
   ──────────────────────
   Tab       Switch focus
-  /         Fuzzy finder
   n         Line numbers
   w         Word wrap
   t         Cycle theme
@@ -369,6 +442,7 @@ func (a App) helpView() string {
   j/k ↑/↓   Navigate
   h/l ←/→   Collapse/Expand
   Enter     Toggle dir / view file
+  /         Fuzzy file finder
   g/G       Top / Bottom
 
   Preview
@@ -377,6 +451,9 @@ func (a App) helpView() string {
   Ctrl+u/d      Half page
   PgUp/PgDn     Half page
   g/G           Top / Bottom
+  /             Search in file
+  n/N           Next / prev match
+  Esc           Clear search
   y             Copy file to clipboard
   Y             Copy visible to clipboard
 `
