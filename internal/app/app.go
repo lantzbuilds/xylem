@@ -11,6 +11,7 @@ import (
 	"github.com/charmbracelet/lipgloss"
 
 	"github.com/lantzbuilds/xylem/internal/finder"
+	"github.com/lantzbuilds/xylem/internal/globalsearch"
 	"github.com/lantzbuilds/xylem/internal/preview"
 	"github.com/lantzbuilds/xylem/internal/statusbar"
 	"github.com/lantzbuilds/xylem/internal/theme"
@@ -20,18 +21,20 @@ import (
 type flashTickMsg struct{}
 
 const (
-	focusTree    = 0
-	focusPreview = 1
-	focusFinder  = 2
+	focusTree         = 0
+	focusPreview      = 1
+	focusFinder       = 2
+	focusGlobalSearch = 3
 )
 
 const treePct = 0.30
 
 type App struct {
-	tree      itree.Model
-	preview   preview.Model
-	finder    finder.Model
-	statusbar statusbar.Model
+	tree         itree.Model
+	preview      preview.Model
+	finder       finder.Model
+	globalSearch globalsearch.Model
+	statusbar    statusbar.Model
 	theme     *theme.Manager
 	focus     int
 	width     int
@@ -70,6 +73,7 @@ func NewApp(path string, showLines bool, themeName string, version string) App {
 	}
 	a.statusbar = statusbar.New(120, filepath.Base(absPath), version).SetTheme(tm.Current())
 	a.finder = finder.New(nil, 120, 20)
+	a.globalSearch = globalsearch.New(120, 40, absPath)
 
 	return a
 }
@@ -126,6 +130,16 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return a, nil
 			}
 			return a, nil
+		}
+
+		// Route to global search when active
+		if a.focus == focusGlobalSearch {
+			updated, cmd := a.globalSearch.Update(msg)
+			a.globalSearch = updated
+			if !a.globalSearch.Active() {
+				a.focus = focusTree
+			}
+			return a, cmd
 		}
 
 		// Route to finder when active
@@ -197,9 +211,9 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				a.preview = a.preview.ClearSearch()
 				return a, nil
 			}
-			a.finder = a.finder.SetFiles(a.collectFiles())
-			a.finder = a.finder.Open()
-			a.focus = focusFinder
+			a.globalSearch = a.globalSearch.SetSize(a.width, a.height)
+			a.globalSearch = a.globalSearch.Open()
+			a.focus = focusGlobalSearch
 			return a, nil
 		case "?":
 			a.showHelp = !a.showHelp
@@ -267,6 +281,27 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			a.preview = updated
 			return a, cmd
 		}
+
+	case globalsearch.ResultSelectedMsg:
+		a.focus = focusPreview
+		fullPath := filepath.Join(a.rootPath, msg.File)
+		a.preview = a.preview.LoadFile(fullPath)
+		a.tree = a.tree.NavigateTo(fullPath)
+		rel, _ := filepath.Rel(a.rootPath, fullPath)
+		a.statusbar = a.statusbar.SetFile(
+			rel,
+			a.preview.Language(),
+			a.preview.LineCount(),
+		)
+		if msg.Query != "" {
+			a.preview = a.preview.Search(msg.Query)
+		}
+		return a, nil
+
+	case globalsearch.SearchDoneMsg:
+		updated, cmd := a.globalSearch.Update(msg)
+		a.globalSearch = updated
+		return a, cmd
 
 	case finder.FileFoundMsg:
 		a.focus = focusTree
@@ -420,6 +455,11 @@ func (a App) View() string {
 		result = placeCentered(result, finderView, a.width, a.height)
 	}
 
+	if a.globalSearch.Active() {
+		gsView := a.globalSearch.View()
+		result = placeCentered(result, gsView, a.width, a.height)
+	}
+
 	return result
 }
 
@@ -442,7 +482,7 @@ func (a App) helpView() string {
   j/k ↑/↓   Navigate
   h/l ←/→   Collapse/Expand
   Enter     Toggle dir / view file
-  /         Fuzzy file finder
+  /         Search all files
   g/G       Top / Bottom
 
   Preview

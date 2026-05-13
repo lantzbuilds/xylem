@@ -98,7 +98,7 @@ func TestAppLineNumberToggle(t *testing.T) {
 	}
 }
 
-func TestAppFinderOpensAndCloses(t *testing.T) {
+func TestAppGlobalSearchOpensAndCloses(t *testing.T) {
 	dir := setupTestDir(t)
 	m := NewApp(dir, false, "monokai", "dev")
 	m.width = 120
@@ -106,8 +106,8 @@ func TestAppFinderOpensAndCloses(t *testing.T) {
 
 	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
 	um := updated.(App)
-	if um.focus != focusFinder {
-		t.Errorf("expected focus on finder after /, got %d", um.focus)
+	if um.focus != focusGlobalSearch {
+		t.Errorf("expected focus on global search after /, got %d", um.focus)
 	}
 
 	updated2, _ := um.Update(tea.KeyMsg{Type: tea.KeyEsc})

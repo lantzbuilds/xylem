@@ -50,7 +50,7 @@ xylem --theme dracula
 
 | Key | Action |
 |---|---|
-| `/` | Fuzzy file finder |
+| `/` | Search all files (uses `rg` if available) |
 
 ### Preview (when focused)
 
@@ -72,9 +72,13 @@ Cycle with `t`: monokai, dracula, github, solarized-dark, solarized-light, nord,
 ## Features
 
 - Syntax highlighting for 500+ languages via [Chroma](https://github.com/alecthomas/chroma)
+- In-file search with match highlighting (`/` in preview)
+- Global content search across all files (`/` in tree)
+  - Uses [ripgrep](https://github.com/BurntSushi/ripgrep) if installed, falls back to native Go
 - Lazy directory loading
 - Respects `.gitignore`
 - Binary file detection
+- Clipboard copy (file or visible lines)
 - Mouse support
 - Built with [Bubble Tea](https://github.com/charmbracelet/bubbletea)
 
