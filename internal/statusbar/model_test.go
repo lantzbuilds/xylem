@@ -6,7 +6,7 @@ import (
 )
 
 func TestStatusBarShowsFileInfo(t *testing.T) {
-	m := New(80, "xylem")
+	m := New(80, "xylem", "dev")
 	m = m.SetFile("src/main.go", "Go", 42)
 	m = m.SetTheme("monokai")
 
@@ -26,7 +26,7 @@ func TestStatusBarShowsFileInfo(t *testing.T) {
 }
 
 func TestStatusBarEmpty(t *testing.T) {
-	m := New(80, "myproject")
+	m := New(80, "myproject", "dev")
 	view := m.View()
 	if len(view) == 0 {
 		t.Error("expected non-empty status bar even with no file")

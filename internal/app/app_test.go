@@ -20,7 +20,7 @@ func setupTestDir(t *testing.T) string {
 
 func TestAppFocusSwitching(t *testing.T) {
 	dir := setupTestDir(t)
-	m := NewApp(dir, false, "monokai")
+	m := NewApp(dir, false, "monokai", "dev")
 
 	if m.focus != focusTree {
 		t.Error("expected initial focus on tree")
@@ -45,7 +45,7 @@ func TestAppFocusSwitching(t *testing.T) {
 
 func TestAppQuit(t *testing.T) {
 	dir := setupTestDir(t)
-	m := NewApp(dir, false, "monokai")
+	m := NewApp(dir, false, "monokai", "dev")
 	m.width = 120
 	m.height = 40
 
@@ -61,7 +61,7 @@ func TestAppQuit(t *testing.T) {
 
 func TestAppThemeCycling(t *testing.T) {
 	dir := setupTestDir(t)
-	m := NewApp(dir, false, "monokai")
+	m := NewApp(dir, false, "monokai", "dev")
 	m.width = 120
 	m.height = 40
 
@@ -77,7 +77,7 @@ func TestAppThemeCycling(t *testing.T) {
 
 func TestAppLineNumberToggle(t *testing.T) {
 	dir := setupTestDir(t)
-	m := NewApp(dir, false, "monokai")
+	m := NewApp(dir, false, "monokai", "dev")
 	m.width = 120
 	m.height = 40
 
@@ -100,7 +100,7 @@ func TestAppLineNumberToggle(t *testing.T) {
 
 func TestAppFinderOpensAndCloses(t *testing.T) {
 	dir := setupTestDir(t)
-	m := NewApp(dir, false, "monokai")
+	m := NewApp(dir, false, "monokai", "dev")
 	m.width = 120
 	m.height = 40
 
@@ -119,7 +119,7 @@ func TestAppFinderOpensAndCloses(t *testing.T) {
 
 func TestAppFullScreenToggle(t *testing.T) {
 	dir := setupTestDir(t)
-	m := NewApp(dir, false, "monokai")
+	m := NewApp(dir, false, "monokai", "dev")
 	m.width = 120
 	m.height = 40
 
@@ -152,7 +152,7 @@ func TestAppFullScreenToggle(t *testing.T) {
 
 func TestAppHelpOverlay(t *testing.T) {
 	dir := setupTestDir(t)
-	m := NewApp(dir, false, "monokai")
+	m := NewApp(dir, false, "monokai", "dev")
 	m.width = 120
 	m.height = 40
 
@@ -171,7 +171,7 @@ func TestAppHelpOverlay(t *testing.T) {
 
 func TestAppFileSelectedMsg(t *testing.T) {
 	dir := setupTestDir(t)
-	m := NewApp(dir, false, "monokai")
+	m := NewApp(dir, false, "monokai", "dev")
 	m.width = 120
 	m.height = 40
 
@@ -189,7 +189,7 @@ func TestAppFileSelectedMsg(t *testing.T) {
 
 func TestAppResize(t *testing.T) {
 	dir := setupTestDir(t)
-	m := NewApp(dir, false, "monokai")
+	m := NewApp(dir, false, "monokai", "dev")
 
 	updated, _ := m.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
 	um := updated.(App)

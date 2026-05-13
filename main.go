@@ -77,7 +77,7 @@ Key Bindings:
 	if themeExplicit {
 		themeArg = *themeName
 	}
-	a := app.NewApp(path, *showLines, themeArg)
+	a := app.NewApp(path, *showLines, themeArg, version)
 	p := tea.NewProgram(a, tea.WithAltScreen(), tea.WithMouseCellMotion())
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)

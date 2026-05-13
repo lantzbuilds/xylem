@@ -15,10 +15,11 @@ type Model struct {
 	lines    int
 	theme    string
 	focus    string
+	version  string
 }
 
-func New(width int, rootName string) Model {
-	return Model{width: width, rootName: rootName}
+func New(width int, rootName string, version string) Model {
+	return Model{width: width, rootName: rootName, version: version}
 }
 
 func (m Model) SetFile(filename, language string, lines int) Model {
@@ -66,10 +67,15 @@ func (m Model) View() string {
 		left = fmt.Sprintf(" xylem │ %s", m.focus)
 	}
 
-	right := ""
-	if m.theme != "" {
-		right = accent.Render(m.theme)
+	versionPart := ""
+	if m.version != "" {
+		versionPart = style.Render(m.version + " ")
 	}
+	themePart := ""
+	if m.theme != "" {
+		themePart = accent.Render(m.theme)
+	}
+	right := versionPart + themePart
 
 	leftRendered := style.Render(left)
 	gap := m.width - lipgloss.Width(leftRendered) - lipgloss.Width(right)

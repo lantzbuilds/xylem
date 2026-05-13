@@ -42,7 +42,7 @@ type App struct {
 	flashTicks  int
 }
 
-func NewApp(path string, showLines bool, themeName string) App {
+func NewApp(path string, showLines bool, themeName string, version string) App {
 	tm := theme.New()
 	tm.Load()
 	if themeName != "" {
@@ -65,7 +65,7 @@ func NewApp(path string, showLines bool, themeName string) App {
 	if showLines {
 		a.preview = a.preview.ToggleLineNumbers()
 	}
-	a.statusbar = statusbar.New(120, filepath.Base(absPath)).SetTheme(tm.Current())
+	a.statusbar = statusbar.New(120, filepath.Base(absPath), version).SetTheme(tm.Current())
 	a.finder = finder.New(nil, 120, 20)
 
 	return a
