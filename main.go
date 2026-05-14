@@ -39,6 +39,7 @@ Key Bindings:
   w         Toggle word wrap
   t         Cycle theme
   r         Refresh directory
+  m         Toggle markdown rendered/source (preview)
   y         Copy file to clipboard (preview)
   Y         Copy visible to clipboard (preview)
   Esc       Clear search / exit fullscreen

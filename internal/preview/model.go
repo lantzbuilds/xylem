@@ -8,6 +8,7 @@ import (
 
 	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/viewport"
+	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/lantzbuilds/xylem/internal/search"
@@ -29,6 +30,8 @@ type Model struct {
 	height          int
 	errMsg          string
 	rawContent      string
+	renderedMode    bool
+	isMarkdown      bool
 	searchQuery     string
 	searchMatches   []search.Match
 	searchIndex     int
@@ -102,6 +105,8 @@ func (m Model) LoadFile(path string) Model {
 
 	_, lang := Highlight(source, path, m.theme)
 	m.language = lang
+	m.isMarkdown = isMarkdownFile(path)
+	m.renderedMode = m.isMarkdown
 
 	m.viewport.SetContent(m.renderContent())
 	m.viewport.GotoTop()
@@ -135,6 +140,11 @@ func (m Model) renderContent() string {
 	if m.rawContent == "" {
 		return ""
 	}
+
+	if m.renderedMode && m.isMarkdown {
+		return m.renderMarkdown()
+	}
+
 	highlighted, _ := Highlight(m.rawContent, m.filePath, m.theme)
 
 	if m.searchQuery != "" && len(m.searchMatches) > 0 {
@@ -146,6 +156,50 @@ func (m Model) renderContent() string {
 		content = m.wrapLines(content)
 	}
 	return content
+}
+
+func (m Model) renderMarkdown() string {
+	style := glamourStyle(m.theme)
+	width := m.width
+	if width < 20 {
+		width = 80
+	}
+
+	renderer, err := glamour.NewTermRenderer(
+		glamour.WithStylePath(style),
+		glamour.WithWordWrap(width-2),
+	)
+	if err != nil {
+		highlighted, _ := Highlight(m.rawContent, m.filePath, m.theme)
+		return highlighted
+	}
+
+	rendered, err := renderer.Render(m.rawContent)
+	if err != nil {
+		highlighted, _ := Highlight(m.rawContent, m.filePath, m.theme)
+		return highlighted
+	}
+
+	return strings.TrimRight(rendered, "\n")
+}
+
+func glamourStyle(theme string) string {
+	switch theme {
+	case "dracula":
+		return "dracula"
+	case "github":
+		return "light"
+	case "solarized-light", "catppuccin-latte":
+		return "light"
+	default:
+		return "dark"
+	}
+}
+
+func isMarkdownFile(path string) bool {
+	lower := strings.ToLower(path)
+	return strings.HasSuffix(lower, ".md") || strings.HasSuffix(lower, ".markdown") ||
+		strings.HasSuffix(lower, ".mkd") || strings.HasSuffix(lower, ".mdx")
 }
 
 func (m Model) applySearchHighlight(content string) string {
@@ -218,7 +272,20 @@ func (m Model) ToggleWordWrap() Model {
 	return m
 }
 
-func (m Model) WordWrapEnabled() bool { return m.wordWrap }
+func (m Model) WordWrapEnabled() bool  { return m.wordWrap }
+func (m Model) RenderedMode() bool     { return m.renderedMode }
+func (m Model) IsMarkdown() bool       { return m.isMarkdown }
+
+func (m Model) ToggleRenderedMode() Model {
+	if !m.isMarkdown {
+		return m
+	}
+	m.renderedMode = !m.renderedMode
+	if m.filePath != "" && m.errMsg == "" && m.rawContent != "" {
+		m.viewport.SetContent(m.renderContent())
+	}
+	return m
+}
 
 func (m Model) SetSize(w, h int) Model {
 	m.width = w

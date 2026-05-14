@@ -262,6 +262,16 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "G":
 				a.preview = a.preview.GotoBottom()
 				return a, nil
+			case "m":
+				if a.preview.IsMarkdown() {
+					a.preview = a.preview.ToggleRenderedMode()
+					mode := "source"
+					if a.preview.RenderedMode() {
+						mode = "rendered"
+					}
+					a, cmd := a.flash("markdown: " + mode)
+					return a, cmd
+				}
 			case "y":
 				if err := a.preview.CopyFile(); err != nil {
 					a, cmd := a.flash("copy failed: " + err.Error())
@@ -494,6 +504,7 @@ func (a App) helpView() string {
   /             Search in file
   n/N           Next / prev match
   Esc           Clear search
+  m             Toggle markdown rendered/source
   y             Copy file to clipboard
   Y             Copy visible to clipboard
 `

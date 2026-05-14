@@ -62,6 +62,7 @@ xylem --theme dracula
 | `/` | Search in file |
 | `n/N` | Next / previous match |
 | `Esc` | Clear search results |
+| `m` | Toggle markdown rendered / source |
 | `y` | Copy file to clipboard |
 | `Y` | Copy visible lines to clipboard |
 
@@ -72,6 +73,7 @@ Cycle with `t`: monokai, dracula, github, solarized-dark, solarized-light, nord,
 ## Features
 
 - Syntax highlighting for 500+ languages via [Chroma](https://github.com/alecthomas/chroma)
+- Markdown rendering via [Glamour](https://github.com/charmbracelet/glamour) (toggle with `m`)
 - In-file search with match highlighting (`/` in preview)
 - Global content search across all files (`/` in tree)
   - Uses [ripgrep](https://github.com/BurntSushi/ripgrep) if installed, falls back to native Go
