@@ -6,11 +6,14 @@ import (
 	"os"
 	"strings"
 
+	"path/filepath"
+
 	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/viewport"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 	tea "github.com/charmbracelet/bubbletea"
+	lpdf "github.com/ledongthuc/pdf"
 	"github.com/lantzbuilds/xylem/internal/search"
 	"github.com/muesli/reflow/wordwrap"
 	"github.com/muesli/reflow/ansi"
@@ -76,6 +79,24 @@ func (m Model) LoadFile(path string) Model {
 	if info.Size() > maxFileSize {
 		m.errMsg = fmt.Sprintf("file too large for preview (%d bytes)", info.Size())
 		m.viewport.SetContent(m.errMsg)
+		return m
+	}
+
+	if isPDF(path) {
+		text, pages, err := extractPDFText(path)
+		if err != nil {
+			m.errMsg = fmt.Sprintf("pdf error: %v", err)
+			m.viewport.SetContent(m.errMsg)
+			return m
+		}
+		m.rawContent = text
+		m.language = "PDF"
+		m.lineCount = strings.Count(text, "\n") + 1
+		m.isMarkdown = false
+		m.renderedMode = false
+		m.viewport.SetContent(text)
+		m.viewport.GotoTop()
+		_ = pages
 		return m
 	}
 
@@ -423,4 +444,40 @@ func isBinary(data []byte) bool {
 	}
 	contentType := http.DetectContentType(sample)
 	return !strings.HasPrefix(contentType, "text/")
+}
+
+func isPDF(path string) bool {
+	return strings.ToLower(filepath.Ext(path)) == ".pdf"
+}
+
+func extractPDFText(path string) (string, int, error) {
+	f, r, err := lpdf.Open(path)
+	if err != nil {
+		return "", 0, err
+	}
+	defer f.Close()
+
+	totalPages := r.NumPage()
+	var b strings.Builder
+	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
+
+	for i := 1; i <= totalPages; i++ {
+		page := r.Page(i)
+		if page.V.IsNull() {
+			continue
+		}
+
+		text, err := page.GetPlainText(nil)
+		if err != nil {
+			b.WriteString(fmt.Sprintf("[page %d: text extraction failed]\n", i))
+			continue
+		}
+
+		header := dimStyle.Render(fmt.Sprintf("── page %d/%d ──", i, totalPages))
+		b.WriteString(header + "\n")
+		b.WriteString(strings.TrimRight(text, "\n"))
+		b.WriteString("\n\n")
+	}
+
+	return strings.TrimRight(b.String(), "\n"), totalPages, nil
 }
