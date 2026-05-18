@@ -63,6 +63,7 @@ xylem --theme dracula
 | `n/N` | Next / previous match |
 | `Esc` | Clear search results |
 | `m` | Toggle markdown rendered / source |
+| `o` | Open file in native viewer |
 | `y` | Copy file to clipboard |
 | `Y` | Copy visible lines to clipboard |
 
@@ -80,6 +81,8 @@ Cycle with `t`: monokai, dracula, github, solarized-dark, solarized-light, nord,
 - Lazy directory loading
 - Respects `.gitignore`
 - Binary file detection
+- Image metadata preview (PNG, JPEG, GIF, BMP, WebP)
+- Open any file in native viewer (`o`)
 - Clipboard copy (file or visible lines)
 - Mouse support
 - Built with [Bubble Tea](https://github.com/charmbracelet/bubbletea)

@@ -3,7 +3,9 @@ package app
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -272,6 +274,18 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					a, cmd := a.flash("markdown: " + mode)
 					return a, cmd
 				}
+			case "o":
+				if path := a.preview.FilePath(); path != "" {
+					cmd := openNative(path)
+					if cmd != nil {
+						if err := cmd.Start(); err != nil {
+							a, c := a.flash("open failed: " + err.Error())
+							return a, c
+						}
+					}
+					a, c := a.flash("opened: " + filepath.Base(path))
+					return a, c
+				}
 			case "y":
 				if err := a.preview.CopyFile(); err != nil {
 					a, cmd := a.flash("copy failed: " + err.Error())
@@ -390,6 +404,18 @@ func (a App) buildStatusLine() string {
 	return a.statusbar.SetFocus(focusName).View()
 }
 
+func openNative(path string) *exec.Cmd {
+	switch runtime.GOOS {
+	case "darwin":
+		return exec.Command("open", path)
+	case "linux":
+		return exec.Command("xdg-open", path)
+	case "windows":
+		return exec.Command("cmd", "/c", "start", path)
+	}
+	return nil
+}
+
 func (a App) flash(msg string) (App, tea.Cmd) {
 	a.flashMsg = msg
 	a.flashTicks = 3
@@ -505,6 +531,7 @@ func (a App) helpView() string {
   n/N           Next / prev match
   Esc           Clear search
   m             Toggle markdown rendered/source
+  o             Open in native viewer
   y             Copy file to clipboard
   Y             Copy visible to clipboard
 `

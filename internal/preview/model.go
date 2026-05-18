@@ -2,6 +2,10 @@ package preview
 
 import (
 	"fmt"
+	"image"
+	_ "image/gif"
+	_ "image/jpeg"
+	_ "image/png"
 	"net/http"
 	"os"
 	"strings"
@@ -17,6 +21,8 @@ import (
 	"github.com/lantzbuilds/xylem/internal/search"
 	"github.com/muesli/reflow/wordwrap"
 	"github.com/muesli/reflow/ansi"
+	_ "golang.org/x/image/bmp"
+	_ "golang.org/x/image/webp"
 )
 
 const maxFileSize = 1024 * 1024
@@ -35,6 +41,7 @@ type Model struct {
 	rawContent      string
 	renderedMode    bool
 	isMarkdown      bool
+	isImage         bool
 	searchQuery     string
 	searchMatches   []search.Match
 	searchIndex     int
@@ -56,6 +63,7 @@ func (m Model) LoadFile(path string) Model {
 	m.rawContent = ""
 	m.language = ""
 	m.lineCount = 0
+	m.isImage = false
 	m.searchQuery = ""
 	m.searchMatches = nil
 	m.searchIndex = 0
@@ -79,6 +87,24 @@ func (m Model) LoadFile(path string) Model {
 	if info.Size() > maxFileSize {
 		m.errMsg = fmt.Sprintf("file too large for preview (%d bytes)", info.Size())
 		m.viewport.SetContent(m.errMsg)
+		return m
+	}
+
+	if isImageFile(path) {
+		content, lang, err := renderImage(path, m.width, m.height)
+		if err != nil {
+			m.errMsg = fmt.Sprintf("image error: %v", err)
+			m.viewport.SetContent(m.errMsg)
+			return m
+		}
+		m.isImage = true
+		m.rawContent = content
+		m.language = lang
+		m.lineCount = strings.Count(content, "\n") + 1
+		m.isMarkdown = false
+		m.renderedMode = false
+		m.viewport.SetContent(content)
+		m.viewport.GotoTop()
 		return m
 	}
 
@@ -348,6 +374,8 @@ func (m Model) View() string {
 	return m.viewport.View()
 }
 
+func (m Model) IsImage() bool { return m.isImage }
+
 func (m Model) CopyFile() error {
 	if m.rawContent == "" {
 		return fmt.Errorf("no file loaded")
@@ -480,4 +508,68 @@ func extractPDFText(path string) (string, int, error) {
 	}
 
 	return strings.TrimRight(b.String(), "\n"), totalPages, nil
+}
+
+var imageExts = map[string]bool{
+	".png": true, ".jpg": true, ".jpeg": true, ".gif": true,
+	".bmp": true, ".webp": true, ".svg": true,
+}
+
+func isImageFile(path string) bool {
+	return imageExts[strings.ToLower(filepath.Ext(path))]
+}
+
+func renderImage(path string, width, height int) (string, string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", "", err
+	}
+	defer f.Close()
+
+	img, format, err := image.Decode(f)
+	if err != nil {
+		return imageMetadata(path, nil, "", err)
+	}
+
+	return imageMetadata(path, img, format, nil)
+}
+
+func imageMetadata(path string, img image.Image, format string, decodeErr error) (string, string, error) {
+	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
+	headerStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("62"))
+	var b strings.Builder
+
+	b.WriteString(headerStyle.Render("── image ──") + "\n\n")
+	b.WriteString(fmt.Sprintf("  File:   %s\n", filepath.Base(path)))
+
+	info, _ := os.Stat(path)
+	if info != nil {
+		size := info.Size()
+		sizeStr := fmt.Sprintf("%d B", size)
+		if size > 1024*1024 {
+			sizeStr = fmt.Sprintf("%.1f MB", float64(size)/(1024*1024))
+		} else if size > 1024 {
+			sizeStr = fmt.Sprintf("%.1f KB", float64(size)/1024)
+		}
+		b.WriteString(fmt.Sprintf("  Size:   %s\n", sizeStr))
+	}
+
+	if decodeErr != nil {
+		ext := strings.TrimPrefix(filepath.Ext(path), ".")
+		b.WriteString(fmt.Sprintf("  Format: %s\n", ext))
+		b.WriteString(dimStyle.Render("\n  (decode failed: "+decodeErr.Error()+")") + "\n")
+	} else if img != nil {
+		bounds := img.Bounds()
+		b.WriteString(fmt.Sprintf("  Format: %s\n", format))
+		b.WriteString(fmt.Sprintf("  Dimensions: %dx%d\n", bounds.Dx(), bounds.Dy()))
+		b.WriteString(fmt.Sprintf("  Color model: %T\n", img.At(0, 0)))
+	}
+
+	b.WriteString(dimStyle.Render("\n  press 'o' to open in native viewer") + "\n")
+
+	lang := format
+	if lang == "" {
+		lang = strings.TrimPrefix(filepath.Ext(path), ".")
+	}
+	return b.String(), lang, nil
 }
