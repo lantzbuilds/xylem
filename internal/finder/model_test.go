@@ -3,7 +3,7 @@ package finder
 import (
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 func TestFinderFilters(t *testing.T) {
@@ -11,10 +11,10 @@ func TestFinderFilters(t *testing.T) {
 	m := New(files, 60, 20)
 	m.active = true
 
-	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'m'}})
-	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'a'}})
-	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'i'}})
-	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'n'}})
+	m, _ = m.Update(tea.KeyPressMsg{Code: 'm', Text: "m"})
+	m, _ = m.Update(tea.KeyPressMsg{Code: 'a', Text: "a"})
+	m, _ = m.Update(tea.KeyPressMsg{Code: 'i', Text: "i"})
+	m, _ = m.Update(tea.KeyPressMsg{Code: 'n', Text: "n"})
 
 	if len(m.matches) == 0 {
 		t.Error("expected matches for 'main'")
@@ -34,7 +34,7 @@ func TestFinderEscapeDismisses(t *testing.T) {
 	m := New([]string{"a.go"}, 60, 20)
 	m.active = true
 
-	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyEscape})
+	m, _ = m.Update(tea.KeyPressMsg{Code: tea.KeyEscape})
 	if m.active {
 		t.Error("expected finder to be dismissed")
 	}
@@ -48,7 +48,7 @@ func TestFinderEnterSelectsResult(t *testing.T) {
 	m.cursor = 0
 
 	var selectedMsg *FileFoundMsg
-	m, cmd := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	m, cmd := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	if cmd != nil {
 		msg := cmd()
 		if fm, ok := msg.(FileFoundMsg); ok {
@@ -67,13 +67,13 @@ func TestFinderBackspace(t *testing.T) {
 	m := New([]string{"main.go"}, 60, 20)
 	m.active = true
 
-	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'a'}})
-	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'b'}})
+	m, _ = m.Update(tea.KeyPressMsg{Code: 'a', Text: "a"})
+	m, _ = m.Update(tea.KeyPressMsg{Code: 'b', Text: "b"})
 	if m.query != "ab" {
 		t.Errorf("expected query 'ab', got '%s'", m.query)
 	}
 
-	m, _ = m.Update(tea.KeyMsg{Type: tea.KeyBackspace})
+	m, _ = m.Update(tea.KeyPressMsg{Code: tea.KeyBackspace})
 	if m.query != "a" {
 		t.Errorf("expected query 'a' after backspace, got '%s'", m.query)
 	}

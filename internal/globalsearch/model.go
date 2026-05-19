@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/lantzbuilds/xylem/internal/search"
 )
 
@@ -92,16 +92,16 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		m.scrollOff = 0
 		return m, nil
 
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		if m.searching {
 			return m, nil
 		}
 
-		switch msg.Type {
-		case tea.KeyEscape:
+		switch msg.String() {
+		case "escape", "esc":
 			m.active = false
 			return m, nil
-		case tea.KeyEnter:
+		case "enter":
 			if len(m.flatItems) > 0 && m.cursor < len(m.flatItems) {
 				item := m.flatItems[m.cursor]
 				m.active = false
@@ -124,7 +124,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				}
 			}
 			return m, nil
-		case tea.KeyBackspace:
+		case "backspace":
 			if len(m.query) > 0 {
 				m.query = m.query[:len(m.query)-1]
 				m.results = nil
@@ -133,24 +133,26 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				m.scrollOff = 0
 			}
 			return m, nil
-		case tea.KeyUp:
+		case "up":
 			if m.cursor > 0 {
 				m.cursor--
 				m.ensureVisible()
 			}
 			return m, nil
-		case tea.KeyDown:
+		case "down":
 			if m.cursor < len(m.flatItems)-1 {
 				m.cursor++
 				m.ensureVisible()
 			}
 			return m, nil
-		case tea.KeyRunes:
-			m.query += string(msg.Runes)
-			m.results = nil
-			m.flatItems = nil
-			m.cursor = 0
-			m.scrollOff = 0
+		default:
+			if msg.Text != "" {
+				m.query += msg.Text
+				m.results = nil
+				m.flatItems = nil
+				m.cursor = 0
+				m.scrollOff = 0
+			}
 			return m, nil
 		}
 	}
@@ -221,7 +223,7 @@ func (m Model) View() string {
 
 	prompt := promptStyle.Render("/ ") + m.query + "█"
 	lines = append(lines, prompt)
-	lines = append(lines, strings.Repeat("─", boxW-2))
+	lines = append(lines, strings.Repeat("─", boxW-4))
 
 	if m.searching {
 		engine := search.SearchEngine()
@@ -256,7 +258,7 @@ func (m Model) View() string {
 
 		totalMatches := len(m.flatItems)
 		totalFiles := len(m.results)
-		lines = append(lines, strings.Repeat("─", boxW-2))
+		lines = append(lines, strings.Repeat("─", boxW-4))
 		lines = append(lines, dim.Render(fmt.Sprintf(" %d match(es) in %d file(s)", totalMatches, totalFiles)))
 	} else if m.query != "" {
 		lines = append(lines, dim.Render(" press Enter to search"))

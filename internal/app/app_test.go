@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 	itree "github.com/lantzbuilds/xylem/internal/tree"
 )
 
@@ -30,13 +30,13 @@ func TestAppFocusSwitching(t *testing.T) {
 	resized.width = 120
 	resized.height = 40
 
-	updated, _ := resized.Update(tea.KeyMsg{Type: tea.KeyTab})
+	updated, _ := resized.Update(tea.KeyPressMsg{Code: tea.KeyTab})
 	um := updated.(App)
 	if um.focus != focusPreview {
 		t.Errorf("expected focus on preview after Tab, got %d", um.focus)
 	}
 
-	updated2, _ := um.Update(tea.KeyMsg{Type: tea.KeyTab})
+	updated2, _ := um.Update(tea.KeyPressMsg{Code: tea.KeyTab})
 	um2 := updated2.(App)
 	if um2.focus != focusTree {
 		t.Errorf("expected focus back on tree after second Tab, got %d", um2.focus)
@@ -49,7 +49,7 @@ func TestAppQuit(t *testing.T) {
 	m.width = 120
 	m.height = 40
 
-	_, cmd := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'q'}})
+	_, cmd := m.Update(tea.KeyPressMsg{Code: 'q', Text: "q"})
 	if cmd == nil {
 		t.Fatal("expected quit command")
 	}
@@ -67,7 +67,7 @@ func TestAppThemeCycling(t *testing.T) {
 
 	initialTheme := m.theme.Current()
 
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'t'}})
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 't', Text: "t"})
 	um := updated.(App)
 
 	if um.theme.Current() == initialTheme {
@@ -85,13 +85,13 @@ func TestAppLineNumberToggle(t *testing.T) {
 		t.Fatal("expected line numbers off initially")
 	}
 
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'n'}})
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'n', Text: "n"})
 	um := updated.(App)
 	if !um.preview.ShowingLines() {
 		t.Error("expected line numbers on after pressing n")
 	}
 
-	updated2, _ := um.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'n'}})
+	updated2, _ := um.Update(tea.KeyPressMsg{Code: 'n', Text: "n"})
 	um2 := updated2.(App)
 	if um2.preview.ShowingLines() {
 		t.Error("expected line numbers off after pressing n again")
@@ -104,13 +104,13 @@ func TestAppGlobalSearchOpensAndCloses(t *testing.T) {
 	m.width = 120
 	m.height = 40
 
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'/'}})
+	updated, _ := m.Update(tea.KeyPressMsg{Code: '/', Text: "/"})
 	um := updated.(App)
 	if um.focus != focusGlobalSearch {
 		t.Errorf("expected focus on global search after /, got %d", um.focus)
 	}
 
-	updated2, _ := um.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	updated2, _ := um.Update(tea.KeyPressMsg{Code: tea.KeyEscape})
 	um2 := updated2.(App)
 	if um2.focus != focusTree {
 		t.Errorf("expected focus back on tree after Escape, got %d", um2.focus)
@@ -140,7 +140,7 @@ func TestAppFullScreenToggle(t *testing.T) {
 	m.focus = focusPreview
 	m = m.resize()
 
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEsc})
+	updated, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyEscape})
 	um := updated.(App)
 	if um.fullScreen {
 		t.Error("expected fullScreen to be false after Esc")
@@ -156,13 +156,13 @@ func TestAppHelpOverlay(t *testing.T) {
 	m.width = 120
 	m.height = 40
 
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'?'}})
+	updated, _ := m.Update(tea.KeyPressMsg{Code: '?', Text: "?"})
 	um := updated.(App)
 	if !um.showHelp {
 		t.Error("expected showHelp to be true after pressing ?")
 	}
 
-	updated2, _ := um.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'?'}})
+	updated2, _ := um.Update(tea.KeyPressMsg{Code: '?', Text: "?"})
 	um2 := updated2.(App)
 	if um2.showHelp {
 		t.Error("expected showHelp to be false after pressing ? again")

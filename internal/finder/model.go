@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 	"github.com/sahilm/fuzzy"
 )
 
@@ -66,12 +66,12 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	}
 
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.Type {
-		case tea.KeyEscape:
+	case tea.KeyPressMsg:
+		switch msg.String() {
+		case "escape", "esc":
 			m.active = false
 			return m, nil
-		case tea.KeyEnter:
+		case "enter":
 			if len(m.matches) > 0 && m.cursor < len(m.matches) {
 				path := m.matches[m.cursor]
 				m.active = false
@@ -80,25 +80,27 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				}
 			}
 			return m, nil
-		case tea.KeyBackspace:
+		case "backspace":
 			if len(m.query) > 0 {
 				m.query = m.query[:len(m.query)-1]
 				m.filter()
 			}
 			return m, nil
-		case tea.KeyUp:
+		case "up":
 			if m.cursor > 0 {
 				m.cursor--
 			}
 			return m, nil
-		case tea.KeyDown:
+		case "down":
 			if m.cursor < len(m.matches)-1 {
 				m.cursor++
 			}
 			return m, nil
-		case tea.KeyRunes:
-			m.query += string(msg.Runes)
-			m.filter()
+		default:
+			if msg.Text != "" {
+				m.query += msg.Text
+				m.filter()
+			}
 			return m, nil
 		}
 	}

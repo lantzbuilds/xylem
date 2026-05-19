@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 type FileSelectedMsg struct {
@@ -64,10 +64,10 @@ func (m Model) Init() tea.Cmd {
 
 func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		return m.handleKey(msg)
-	case tea.MouseMsg:
-		if msg.Action == tea.MouseActionPress && msg.Button == tea.MouseButtonLeft {
+	case tea.MouseClickMsg:
+		if msg.Button == tea.MouseLeft {
 			clickedIdx := m.offset + msg.Y
 			flat := m.flatNodes()
 			if clickedIdx >= 0 && clickedIdx < len(flat) {
@@ -88,7 +88,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m Model) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
+func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	flat := m.flatNodes()
 	maxIdx := len(flat) - 1
 
@@ -201,7 +201,11 @@ func (m Model) SetSize(w, h int) Model {
 	return m
 }
 
-func (m Model) View() string {
+func (m Model) View() tea.View {
+	return tea.NewView(m.ViewString())
+}
+
+func (m Model) ViewString() string {
 	flat := m.flatNodes()
 	if len(flat) == 0 {
 		return "(empty)"

@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
+	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 
 	"github.com/lantzbuilds/xylem/internal/finder"
 	"github.com/lantzbuilds/xylem/internal/globalsearch"
@@ -99,15 +99,15 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		a.height = msg.Height
 		return a.resize(), nil
 
-	case tea.KeyMsg:
+	case tea.KeyPressMsg:
 		// Search input mode — capture all keystrokes
 		if a.searchMode {
-			switch msg.Type {
-			case tea.KeyEscape:
+			switch msg.String() {
+			case "escape", "esc":
 				a.searchMode = false
 				a.searchBuf = ""
 				return a, nil
-			case tea.KeyEnter:
+			case "enter":
 				query := a.searchBuf
 				a.searchMode = false
 				a.searchBuf = ""
@@ -122,16 +122,17 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return a, cmd
 				}
 				return a, nil
-			case tea.KeyBackspace:
+			case "backspace":
 				if len(a.searchBuf) > 0 {
 					a.searchBuf = a.searchBuf[:len(a.searchBuf)-1]
 				}
 				return a, nil
-			case tea.KeyRunes:
-				a.searchBuf += string(msg.Runes)
+			default:
+				if msg.Text != "" {
+					a.searchBuf += msg.Text
+				}
 				return a, nil
 			}
-			return a, nil
 		}
 
 		// Route to global search when active
@@ -353,8 +354,9 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return a, nil
 
 	case tea.MouseMsg:
+		mouse := msg.Mouse()
 		treeW := int(float64(a.width) * treePct)
-		if msg.X < treeW {
+		if mouse.X < treeW {
 			a.focus = focusTree
 			updated, cmd := a.tree.Update(msg)
 			a.tree = updated.(itree.Model)
@@ -434,9 +436,15 @@ func (a App) resize() App {
 	return a
 }
 
-func (a App) View() string {
+func (a App) View() tea.View {
+	v := tea.View{
+		AltScreen: true,
+		MouseMode: tea.MouseModeCellMotion,
+	}
+
 	if a.width == 0 {
-		return "loading..."
+		v.Content = "loading..."
+		return v
 	}
 
 	if a.fullScreen {
@@ -444,7 +452,8 @@ func (a App) View() string {
 			Width(a.width).
 			Height(a.height - 1)
 		fsStatus := a.buildStatusLine()
-		return previewStyle.Render(a.preview.View()) + "\n" + fsStatus
+		v.Content = previewStyle.Render(a.preview.View()) + "\n" + fsStatus
+		return v
 	}
 
 	contentHeight := a.height - 1
@@ -474,7 +483,7 @@ func (a App) View() string {
 		BorderStyle(lipgloss.NormalBorder()).
 		BorderForeground(lipgloss.Color(previewBorderColor))
 
-	treeView := treeBorder.Render(a.tree.View())
+	treeView := treeBorder.Render(a.tree.ViewString())
 	previewView := previewStyle.Render(a.preview.View())
 
 	content := lipgloss.JoinHorizontal(lipgloss.Top, treeView, previewView)
@@ -496,7 +505,8 @@ func (a App) View() string {
 		result = placeCentered(result, gsView, a.width, a.height)
 	}
 
-	return result
+	v.Content = result
+	return v
 }
 
 func (a App) helpView() string {
@@ -567,8 +577,9 @@ func placeCentered(bg, overlay string, width, height int) string {
 	bgLines := strings.Split(bg, "\n")
 	ovLines := strings.Split(overlay, "\n")
 
+	ovWidth := lipgloss.Width(overlay)
 	startRow := (height - len(ovLines)) / 2
-	startCol := (width - lipgloss.Width(overlay)) / 2
+	startCol := (width - ovWidth) / 2
 	if startCol < 0 {
 		startCol = 0
 	}
@@ -576,11 +587,9 @@ func placeCentered(bg, overlay string, width, height int) string {
 	for i, ovLine := range ovLines {
 		row := startRow + i
 		if row >= 0 && row < len(bgLines) {
-			pad := ""
-			if startCol > 0 {
-				pad = strings.Repeat(" ", startCol)
-			}
-			bgLines[row] = pad + ovLine
+			leftPad := strings.Repeat(" ", startCol)
+			rightPad := strings.Repeat(" ", max(0, width-startCol-ovWidth))
+			bgLines[row] = leftPad + ovLine + rightPad
 		}
 	}
 

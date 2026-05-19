@@ -13,10 +13,10 @@ import (
 	"path/filepath"
 
 	"github.com/atotto/clipboard"
-	"github.com/charmbracelet/bubbles/viewport"
+	"charm.land/bubbles/v2/viewport"
 	"github.com/charmbracelet/glamour"
-	"github.com/charmbracelet/lipgloss"
-	tea "github.com/charmbracelet/bubbletea"
+	"charm.land/lipgloss/v2"
+	tea "charm.land/bubbletea/v2"
 	lpdf "github.com/ledongthuc/pdf"
 	"github.com/lantzbuilds/xylem/internal/search"
 	"github.com/muesli/reflow/wordwrap"
@@ -48,7 +48,7 @@ type Model struct {
 }
 
 func NewModel(width, height int, theme string) Model {
-	vp := viewport.New(width, height)
+	vp := viewport.New(viewport.WithWidth(width), viewport.WithHeight(height))
 	return Model{
 		viewport: vp,
 		theme:    theme,
@@ -259,10 +259,11 @@ func (m Model) applySearchHighlight(content string) string {
 		}
 	}
 
+	rawLines := strings.Split(m.rawContent, "\n")
 	lines := strings.Split(content, "\n")
-	for i, line := range lines {
-		if matchLines[i] {
-			lines[i] = search.HighlightLine(line, m.searchQuery, i == currentLine)
+	for i := range lines {
+		if matchLines[i] && i < len(rawLines) {
+			lines[i] = search.HighlightLine(rawLines[i], m.searchQuery, i == currentLine)
 		}
 	}
 	return strings.Join(lines, "\n")
@@ -337,8 +338,8 @@ func (m Model) ToggleRenderedMode() Model {
 func (m Model) SetSize(w, h int) Model {
 	m.width = w
 	m.height = h
-	m.viewport.Width = w
-	m.viewport.Height = h
+	m.viewport.SetWidth(w)
+	m.viewport.SetHeight(h)
 	return m
 }
 
@@ -385,8 +386,8 @@ func (m Model) CopyFile() error {
 
 func (m Model) CopyVisible() error {
 	lines := strings.Split(m.rawContent, "\n")
-	top := m.viewport.YOffset
-	bottom := top + m.viewport.Height
+	top := m.viewport.YOffset()
+	bottom := top + m.viewport.Height()
 	if bottom > len(lines) {
 		bottom = len(lines)
 	}
@@ -445,7 +446,7 @@ func (m Model) scrollToCurrentMatch() Model {
 		return m
 	}
 	line := m.searchMatches[m.searchIndex].Line
-	center := line - m.viewport.Height/2
+	center := line - m.viewport.Height()/2
 	if center < 0 {
 		center = 0
 	}

@@ -6,7 +6,7 @@ import (
 	"os"
 	"runtime/debug"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 
 	"github.com/lantzbuilds/xylem/internal/app"
 )
@@ -92,7 +92,7 @@ Key Bindings:
 		themeArg = *themeName
 	}
 	a := app.NewApp(path, *showLines, themeArg, version)
-	p := tea.NewProgram(a, tea.WithAltScreen(), tea.WithMouseCellMotion())
+	p := tea.NewProgram(a)
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)
 		os.Exit(1)

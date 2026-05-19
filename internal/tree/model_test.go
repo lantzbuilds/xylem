@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea "charm.land/bubbletea/v2"
 )
 
 func setupTestDir(t *testing.T) string {
@@ -39,7 +39,7 @@ func TestTreeCursorDown(t *testing.T) {
 	m := NewModel(dir, 40, 20)
 
 	initial := m.cursor
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'j', Text: "j"})
 	um := updated.(Model)
 	if um.cursor != initial+1 {
 		t.Error("expected cursor to move down")
@@ -50,8 +50,8 @@ func TestTreeCursorUp(t *testing.T) {
 	dir := setupTestDir(t)
 	m := NewModel(dir, 40, 20)
 
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
-	updated, _ = updated.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'k'}})
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'j', Text: "j"})
+	updated, _ = updated.Update(tea.KeyPressMsg{Code: 'k', Text: "k"})
 	um := updated.(Model)
 	if um.cursor != 0 {
 		t.Error("expected cursor back at 0")
@@ -62,7 +62,7 @@ func TestTreeCursorDoesNotGoBelowZero(t *testing.T) {
 	dir := setupTestDir(t)
 	m := NewModel(dir, 40, 20)
 
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'k'}})
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'k', Text: "k"})
 	um := updated.(Model)
 	if um.cursor != 0 {
 		t.Error("cursor should not go below 0")
@@ -84,14 +84,14 @@ func TestTreeExpandCollapse(t *testing.T) {
 
 	model := m
 	model.cursor = srcIdx
-	updated, _ := model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'l'}})
+	updated, _ := model.Update(tea.KeyPressMsg{Code: 'l', Text: "l"})
 	um := updated.(Model)
 	expandedFlat := um.flatNodes()
 	if len(expandedFlat) <= len(flat) {
 		t.Error("expected more nodes after expanding src/")
 	}
 
-	updated2, _ := um.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'h'}})
+	updated2, _ := um.Update(tea.KeyPressMsg{Code: 'h', Text: "h"})
 	um2 := updated2.(Model)
 	collapsedFlat := um2.flatNodes()
 	if len(collapsedFlat) != len(flat) {
@@ -156,12 +156,12 @@ func TestTreeJumpToTop(t *testing.T) {
 	m := NewModel(dir, 40, 20)
 
 	// Move cursor down a few times
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
-	updated, _ = updated.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
-	updated, _ = updated.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'j', Text: "j"})
+	updated, _ = updated.Update(tea.KeyPressMsg{Code: 'j', Text: "j"})
+	updated, _ = updated.Update(tea.KeyPressMsg{Code: 'j', Text: "j"})
 
 	// Jump to top with 'g'
-	updated, _ = updated.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'g'}})
+	updated, _ = updated.Update(tea.KeyPressMsg{Code: 'g', Text: "g"})
 	um := updated.(Model)
 
 	if um.cursor != 0 {
@@ -173,7 +173,7 @@ func TestTreeJumpToBottom(t *testing.T) {
 	dir := setupTestDir(t)
 	m := NewModel(dir, 40, 20)
 
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'G'}})
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'G', Text: "G"})
 	um := updated.(Model)
 
 	flat := um.flatNodes()
@@ -198,7 +198,7 @@ func TestTreeEnterOnDirectory(t *testing.T) {
 	m.cursor = srcIdx
 
 	// Enter expands
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	updated, _ := m.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	um := updated.(Model)
 	expandedFlat := um.flatNodes()
 	if len(expandedFlat) <= len(flat) {
@@ -206,7 +206,7 @@ func TestTreeEnterOnDirectory(t *testing.T) {
 	}
 
 	// Enter again collapses
-	updated2, _ := um.Update(tea.KeyMsg{Type: tea.KeyEnter})
+	updated2, _ := um.Update(tea.KeyPressMsg{Code: tea.KeyEnter})
 	um2 := updated2.(Model)
 	collapsedFlat := um2.flatNodes()
 	if len(collapsedFlat) != len(flat) {
@@ -218,7 +218,7 @@ func TestTreeViewRendersContent(t *testing.T) {
 	dir := setupTestDir(t)
 	m := NewModel(dir, 80, 40)
 
-	view := m.View()
+	view := m.ViewString()
 
 	if !strings.Contains(view, "src") {
 		t.Error("expected View() to contain 'src'")
@@ -244,7 +244,7 @@ func TestTreeSelectedPath(t *testing.T) {
 		t.Errorf("expected SelectedPath() to return %s, got %s", flat[0].Path, m.SelectedPath())
 	}
 
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'j', Text: "j"})
 	um := updated.(Model)
 
 	if um.SelectedPath() != flat[1].Path {
@@ -272,7 +272,7 @@ func TestTreeRefreshPicksUpNewFiles(t *testing.T) {
 
 	os.WriteFile(filepath.Join(dir, "new_file.txt"), []byte("hello"), 0o644)
 
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}})
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'r', Text: "r"})
 	um := updated.(Model)
 
 	newCount := len(um.flatNodes())
@@ -300,7 +300,7 @@ func TestTreeRefreshPicksUpDeletedFiles(t *testing.T) {
 
 	os.Remove(filepath.Join(dir, "README.md"))
 
-	updated, _ := m.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'r'}})
+	updated, _ := m.Update(tea.KeyPressMsg{Code: 'r', Text: "r"})
 	um := updated.(Model)
 
 	newCount := len(um.flatNodes())
