@@ -23,8 +23,8 @@ xylem
 # Browse a specific path
 xylem ./src
 
-# Start with line numbers
-xylem --lines
+# Start without line numbers
+xylem --no-lines
 
 # Use a specific theme
 xylem --theme dracula
@@ -39,7 +39,7 @@ xylem --theme dracula
 | `h/l` `←/→` | Collapse / expand directory |
 | `Enter` | Expand dir / full-screen file |
 | `Esc` | Back to split view / clear search |
-| `n` | Toggle line numbers |
+| `#` | Toggle line numbers |
 | `w` | Toggle word wrap |
 | `t` | Cycle syntax theme |
 | `r` | Refresh directory |

@@ -23,7 +23,7 @@ func init() {
 }
 
 func main() {
-	showLines := flag.Bool("lines", false, "Start with line numbers enabled")
+	noLines := flag.Bool("no-lines", false, "Start with line numbers disabled")
 	themeName := flag.String("theme", "monokai", "Set syntax theme")
 	showVersion := flag.Bool("version", false, "Print version and exit")
 
@@ -34,7 +34,7 @@ Usage:
   xylem [flags] [path]
 
 Flags:
-  --lines          Start with line numbers enabled
+  --no-lines       Start with line numbers disabled
   --theme <name>   Set syntax theme (default: monokai)
   --version        Print version and exit
   --help           Show this help message
@@ -45,7 +45,7 @@ Key Bindings:
   h/l       Collapse / expand directory
   /         Search in file (preview) / file finder (tree)
   n/N       Next / prev match (after search)
-  n         Toggle line numbers (no active search)
+  #         Toggle line numbers
   w         Toggle word wrap
   t         Cycle theme
   r         Refresh directory
@@ -91,7 +91,7 @@ Key Bindings:
 	if themeExplicit {
 		themeArg = *themeName
 	}
-	a := app.NewApp(path, *showLines, themeArg, version)
+	a := app.NewApp(path, *noLines, themeArg, version)
 	p := tea.NewProgram(a)
 	if _, err := p.Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "error: %v\n", err)

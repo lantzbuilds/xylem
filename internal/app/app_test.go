@@ -81,20 +81,20 @@ func TestAppLineNumberToggle(t *testing.T) {
 	m.width = 120
 	m.height = 40
 
-	if m.preview.ShowingLines() {
-		t.Fatal("expected line numbers off initially")
+	if !m.preview.ShowingLines() {
+		t.Fatal("expected line numbers on by default")
 	}
 
-	updated, _ := m.Update(tea.KeyPressMsg{Code: 'n', Text: "n"})
+	updated, _ := m.Update(tea.KeyPressMsg{Code: '#', Text: "#"})
 	um := updated.(App)
-	if !um.preview.ShowingLines() {
-		t.Error("expected line numbers on after pressing n")
+	if um.preview.ShowingLines() {
+		t.Error("expected line numbers off after pressing #")
 	}
 
-	updated2, _ := um.Update(tea.KeyPressMsg{Code: 'n', Text: "n"})
+	updated2, _ := um.Update(tea.KeyPressMsg{Code: '#', Text: "#"})
 	um2 := updated2.(App)
-	if um2.preview.ShowingLines() {
-		t.Error("expected line numbers off after pressing n again")
+	if !um2.preview.ShowingLines() {
+		t.Error("expected line numbers on after pressing # again")
 	}
 }
 

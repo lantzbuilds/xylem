@@ -50,7 +50,7 @@ type App struct {
 	searchBuf   string
 }
 
-func NewApp(path string, showLines bool, themeName string, version string) App {
+func NewApp(path string, noLines bool, themeName string, version string) App {
 	tm := theme.New()
 	tm.Load()
 	if themeName != "" {
@@ -70,7 +70,7 @@ func NewApp(path string, showLines bool, themeName string, version string) App {
 
 	a.tree = itree.NewModel(absPath, 40, 20)
 	a.preview = preview.NewModel(80, 20, tm.Current())
-	if showLines {
+	if noLines {
 		a.preview = a.preview.ToggleLineNumbers()
 	}
 	a.statusbar = statusbar.New(120, filepath.Base(absPath), version).SetTheme(tm.Current())
@@ -195,7 +195,7 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				a.focus = focusTree
 			}
 			return a, nil
-		case "n":
+		case "#":
 			a.preview = a.preview.ToggleLineNumbers()
 			return a, nil
 		case "w":
@@ -516,7 +516,7 @@ func (a App) helpView() string {
   Global
   ──────────────────────
   Tab       Switch focus
-  n         Line numbers
+  #         Line numbers
   w         Word wrap
   t         Cycle theme
   r         Refresh

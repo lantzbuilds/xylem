@@ -50,10 +50,11 @@ type Model struct {
 func NewModel(width, height int, theme string) Model {
 	vp := viewport.New(viewport.WithWidth(width), viewport.WithHeight(height))
 	return Model{
-		viewport: vp,
-		theme:    theme,
-		width:    width,
-		height:   height,
+		viewport:        vp,
+		theme:           theme,
+		width:           width,
+		height:          height,
+		showLineNumbers: true,
 	}
 }
 
@@ -401,6 +402,9 @@ func (m Model) Search(query string) Model {
 	m.searchQuery = query
 	m.searchMatches = search.SearchFile(m.rawContent, query)
 	m.searchIndex = 0
+	if m.isMarkdown && m.renderedMode {
+		m.renderedMode = false
+	}
 	if len(m.searchMatches) > 0 {
 		m.viewport.SetContent(m.renderContent())
 		m = m.scrollToCurrentMatch()
@@ -435,6 +439,9 @@ func (m Model) ClearSearch() Model {
 	m.searchQuery = ""
 	m.searchMatches = nil
 	m.searchIndex = 0
+	if m.isMarkdown {
+		m.renderedMode = true
+	}
 	if m.rawContent != "" {
 		m.viewport.SetContent(m.renderContent())
 	}
