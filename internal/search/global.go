@@ -2,6 +2,7 @@ package search
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -9,6 +10,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	ignore "github.com/sabhiram/go-gitignore"
 )
@@ -44,8 +46,10 @@ func SearchGlobal(root, query string) []GlobalResult {
 }
 
 func searchWithRg(root, query string) []GlobalResult {
-	cmd := exec.Command(rgPath, "-n", "--no-heading", "--color=never", "-i",
-		"--max-filesize", "1M", "--max-count", "50", query, root)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, rgPath, "-n", "--no-heading", "--color=never", "-i",
+		"--max-filesize", "1M", "--max-count", "10", "--max-columns", "200", query, root)
 	out, err := cmd.Output()
 	if err != nil {
 		if exitErr, ok := err.(*exec.ExitError); ok && exitErr.ExitCode() == 1 {
@@ -168,6 +172,9 @@ func searchWithGo(root, query string) []GlobalResult {
 
 		if len(matches) > 0 {
 			results = append(results, GlobalResult{File: rel, Matches: matches})
+			if len(results) >= 100 {
+				return filepath.SkipAll
+			}
 		}
 
 		return nil

@@ -94,6 +94,14 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 
 	case tea.KeyPressMsg:
 		if m.searching {
+			switch msg.String() {
+			case "ctrl+c", "q":
+				return m, tea.Quit
+			case "esc", "escape":
+				m.searching = false
+				m.active = false
+				return m, nil
+			}
 			return m, nil
 		}
 

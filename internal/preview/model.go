@@ -3,6 +3,7 @@ package preview
 import (
 	"fmt"
 	"image"
+	stdDraw "image/draw"
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
@@ -15,6 +16,7 @@ import (
 	"github.com/atotto/clipboard"
 	"charm.land/bubbles/v2/viewport"
 	"github.com/charmbracelet/glamour"
+	chafa "github.com/ploMP4/chafa-go"
 	"charm.land/lipgloss/v2"
 	tea "charm.land/bubbletea/v2"
 	lpdf "github.com/ledongthuc/pdf"
@@ -22,6 +24,7 @@ import (
 	"github.com/muesli/reflow/wordwrap"
 	"github.com/muesli/reflow/ansi"
 	_ "golang.org/x/image/bmp"
+	xdraw "golang.org/x/image/draw"
 	_ "golang.org/x/image/webp"
 )
 
@@ -539,7 +542,78 @@ func renderImage(path string, width, height int) (string, string, error) {
 		return imageMetadata(path, nil, "", err)
 	}
 
-	return imageMetadata(path, img, format, nil)
+	canvasW := width
+	canvasH := height - 2
+	if canvasW < 10 {
+		canvasW = 40
+	}
+	if canvasH < 5 {
+		canvasH = 20
+	}
+
+	// Pre-scale large images to reduce artifacts from chafa's internal downscaling
+	bounds := img.Bounds()
+	origW, origH := bounds.Dx(), bounds.Dy()
+	maxPixW := canvasW * 8
+	maxPixH := canvasH * 16
+	scaleImg := img
+	if origW > maxPixW || origH > maxPixH {
+		scaleW := float64(maxPixW) / float64(origW)
+		scaleH := float64(maxPixH) / float64(origH)
+		scale := scaleW
+		if scaleH < scale {
+			scale = scaleH
+		}
+		newW := int(float64(origW) * scale)
+		newH := int(float64(origH) * scale)
+		if newW < 1 { newW = 1 }
+		if newH < 1 { newH = 1 }
+		dst := image.NewRGBA(image.Rect(0, 0, newW, newH))
+		xdraw.BiLinear.Scale(dst, dst.Bounds(), img, bounds, xdraw.Over, nil)
+		scaleImg = dst
+	}
+
+	scaledBounds := scaleImg.Bounds()
+	rgba := image.NewRGBA(scaledBounds)
+	stdDraw.Draw(rgba, scaledBounds, scaleImg, scaledBounds.Min, stdDraw.Src)
+	imgW := int32(scaledBounds.Dx())
+	imgH := int32(scaledBounds.Dy())
+
+	termInfo := chafa.TermDbDetect(chafa.TermDbGetDefault(), os.Environ())
+	defer chafa.TermInfoUnref(termInfo)
+
+	config := chafa.CanvasConfigNew()
+	defer chafa.CanvasConfigUnref(config)
+
+	chafa.CanvasConfigSetGeometry(config, int32(canvasW), int32(canvasH))
+	chafa.CanvasConfigSetCanvasMode(config, chafa.TermInfoGetBestCanvasMode(termInfo))
+	chafa.CanvasConfigSetPixelMode(config, chafa.CHAFA_PIXEL_MODE_SYMBOLS)
+
+	chafa.CalcCanvasGeometry(
+		imgW, imgH,
+		&config.Width, &config.Height,
+		0.5,
+		false, false,
+	)
+	chafa.CanvasConfigSetGeometry(config, config.Width, config.Height)
+
+	canvas := chafa.CanvasNew(config)
+	defer chafa.CanvasUnRef(canvas)
+
+	chafa.CanvasDrawAllPixels(
+		canvas,
+		chafa.CHAFA_PIXEL_RGBA8_UNASSOCIATED,
+		rgba.Pix,
+		imgW, imgH,
+		int32(rgba.Stride),
+	)
+
+	gs := chafa.CanvasPrint(canvas, termInfo)
+
+	dimStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("241"))
+	info := dimStyle.Render(fmt.Sprintf("%s │ %dx%d │ %s", filepath.Base(path), origW, origH, format))
+
+	return gs.String() + "\n" + info, format, nil
 }
 
 func imageMetadata(path string, img image.Image, format string, decodeErr error) (string, string, error) {
