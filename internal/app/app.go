@@ -490,7 +490,7 @@ func (a App) flash(msg string) (App, tea.Cmd) {
 }
 
 func (a App) resize() App {
-	contentHeight := a.height - 1
+	contentHeight := a.height - 2
 	treeW := int(float64(a.width) * treePct)
 	previewW := a.width - treeW - 1
 
@@ -525,21 +525,27 @@ func (a App) View() tea.View {
 	treeW := int(float64(a.width) * treePct)
 	previewW := a.width - treeW - 1
 
-	borderColor := lipgloss.Color("238")
+	treeBorderColor := "238"
+	previewBorderColor := "238"
+	if a.focus == focusTree {
+		treeBorderColor = "62"
+	} else {
+		previewBorderColor = "62"
+	}
 
 	treeBorder := lipgloss.NewStyle().
 		Width(treeW).
 		Height(contentHeight).
 		BorderRight(true).
 		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(borderColor)
+		BorderForeground(lipgloss.Color(treeBorderColor))
 
 	previewStyle := lipgloss.NewStyle().
 		Width(previewW).
 		Height(contentHeight).
 		BorderLeft(true).
 		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(borderColor)
+		BorderForeground(lipgloss.Color(previewBorderColor))
 
 	treeView := treeBorder.Render(a.tree.ViewString())
 	previewView := previewStyle.Render(a.preview.View())
