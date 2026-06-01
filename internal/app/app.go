@@ -505,8 +505,18 @@ func (a App) View() tea.View {
 		BorderStyle(lipgloss.NormalBorder()).
 		BorderForeground(lipgloss.Color(previewBorderColor))
 
-	treeView := treeBorder.Render(a.tree.ViewString())
-	previewView := previewStyle.Render(a.preview.View())
+	treeContent := a.tree.ViewString()
+	previewContent := a.preview.View()
+
+	if a.focus != focusTree {
+		treeContent = lipgloss.NewStyle().Faint(true).Render(treeContent)
+	}
+	if a.focus != focusPreview {
+		previewContent = lipgloss.NewStyle().Faint(true).Render(previewContent)
+	}
+
+	treeView := treeBorder.Render(treeContent)
+	previewView := previewStyle.Render(previewContent)
 
 	content := lipgloss.JoinHorizontal(lipgloss.Top, treeView, previewView)
 	statusLine := a.buildStatusLine()
