@@ -404,6 +404,43 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return a, nil
 }
 
+func (a App) buildTabBar(treeW, previewW int) string {
+	activeStyle := lipgloss.NewStyle().
+		Background(lipgloss.Color("62")).
+		Foreground(lipgloss.Color("230")).
+		Bold(true).
+		Padding(0, 1)
+	inactiveStyle := lipgloss.NewStyle().
+		Background(lipgloss.Color("236")).
+		Foreground(lipgloss.Color("245")).
+		Padding(0, 1)
+
+	treeLabel := inactiveStyle.Render("tree")
+	previewLabel := inactiveStyle.Render("preview")
+	if a.focus == focusTree {
+		treeLabel = activeStyle.Render("tree")
+	} else {
+		previewLabel = activeStyle.Render("preview")
+	}
+
+	bgStyle := lipgloss.NewStyle().
+		Background(lipgloss.Color("236")).
+		Foreground(lipgloss.Color("236"))
+
+	treeGap := treeW - lipgloss.Width(treeLabel)
+	if treeGap < 0 {
+		treeGap = 0
+	}
+	previewGap := previewW - lipgloss.Width(previewLabel)
+	if previewGap < 0 {
+		previewGap = 0
+	}
+
+	return treeLabel + bgStyle.Render(strings.Repeat(" ", treeGap)) +
+		" " +
+		previewLabel + bgStyle.Render(strings.Repeat(" ", previewGap))
+}
+
 func (a App) buildStatusLine() string {
 	if a.searchMode {
 		searchStyle := lipgloss.NewStyle().
@@ -431,11 +468,7 @@ func (a App) buildStatusLine() string {
 			strings.Repeat(" ", max(0, a.width-lipgloss.Width(a.flashMsg)-2))
 	}
 
-	focusName := "tree"
-	if a.focus == focusPreview {
-		focusName = "preview"
-	}
-	return a.statusbar.SetFocus(focusName).View()
+	return a.statusbar.View()
 }
 
 func openNative(path string) *exec.Cmd {
@@ -488,49 +521,33 @@ func (a App) View() tea.View {
 		return v
 	}
 
-	contentHeight := a.height - 1
+	contentHeight := a.height - 2
 	treeW := int(float64(a.width) * treePct)
 	previewW := a.width - treeW - 1
 
-	var treeBorderColor, previewBorderColor string
-	if a.focus == focusTree {
-		treeBorderColor = "62"
-		previewBorderColor = "238"
-	} else {
-		treeBorderColor = "238"
-		previewBorderColor = "62"
-	}
+	borderColor := lipgloss.Color("238")
 
 	treeBorder := lipgloss.NewStyle().
 		Width(treeW).
 		Height(contentHeight).
 		BorderRight(true).
 		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(lipgloss.Color(treeBorderColor))
+		BorderForeground(borderColor)
 
 	previewStyle := lipgloss.NewStyle().
 		Width(previewW).
 		Height(contentHeight).
 		BorderLeft(true).
 		BorderStyle(lipgloss.NormalBorder()).
-		BorderForeground(lipgloss.Color(previewBorderColor))
+		BorderForeground(borderColor)
 
-	treeContent := a.tree.ViewString()
-	previewContent := a.preview.View()
-
-	if a.focus != focusTree {
-		treeContent = lipgloss.NewStyle().Faint(true).Render(treeContent)
-	}
-	if a.focus != focusPreview {
-		previewContent = lipgloss.NewStyle().Faint(true).Render(previewContent)
-	}
-
-	treeView := treeBorder.Render(treeContent)
-	previewView := previewStyle.Render(previewContent)
+	treeView := treeBorder.Render(a.tree.ViewString())
+	previewView := previewStyle.Render(a.preview.View())
 
 	content := lipgloss.JoinHorizontal(lipgloss.Top, treeView, previewView)
+	tabBar := a.buildTabBar(treeW, previewW)
 	statusLine := a.buildStatusLine()
-	result := content + "\n" + statusLine
+	result := content + "\n" + tabBar + "\n" + statusLine
 
 	if a.showHelp {
 		helpView := a.helpView()

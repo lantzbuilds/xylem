@@ -60,11 +60,11 @@ func (m Model) View() string {
 		if m.rootName != "" {
 			display = m.rootName + "/" + m.filename
 		}
-		left = fmt.Sprintf(" %s │ %s │ %d lines │ %s", display, m.language, m.lines, m.focus)
+		left = fmt.Sprintf(" %s │ %s │ %d lines", display, m.language, m.lines)
 	} else if m.rootName != "" {
-		left = fmt.Sprintf(" %s │ %s", m.rootName, m.focus)
+		left = fmt.Sprintf(" %s", m.rootName)
 	} else {
-		left = fmt.Sprintf(" xylem │ %s", m.focus)
+		left = " xylem"
 	}
 
 	versionPart := ""
