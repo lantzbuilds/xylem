@@ -22,6 +22,11 @@ import (
 
 type flashTickMsg struct{}
 
+type editorFinishedMsg struct {
+	path string
+	err  error
+}
+
 const (
 	focusTree         = 0
 	focusPreview      = 1
@@ -86,6 +91,12 @@ func (a App) Init() tea.Cmd {
 
 func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case editorFinishedMsg:
+		if msg.path != "" {
+			a.preview = a.preview.LoadFile(msg.path)
+		}
+		return a, nil
+
 	case flashTickMsg:
 		a.flashTicks--
 		if a.flashTicks <= 0 {
@@ -285,6 +296,17 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						}
 					}
 					a, c := a.flash("opened: " + filepath.Base(path))
+					return a, c
+				}
+			case "e":
+				if path := a.preview.FilePath(); path != "" {
+					editor := os.Getenv("EDITOR")
+					if editor == "" {
+						editor = "nano"
+					}
+					c := tea.ExecProcess(exec.Command(editor, path), func(err error) tea.Msg {
+						return editorFinishedMsg{path: path, err: err}
+					})
 					return a, c
 				}
 			case "y":
@@ -541,6 +563,7 @@ func (a App) helpView() string {
   n/N           Next / prev match
   Esc           Clear search
   m             Toggle markdown rendered/source
+  e             Edit in $EDITOR
   o             Open in native viewer
   y             Copy file to clipboard
   Y             Copy visible to clipboard
