@@ -13,7 +13,10 @@ import (
 
 	"path/filepath"
 
+	"bytes"
+
 	"github.com/atotto/clipboard"
+	"github.com/yuin/goldmark"
 	"charm.land/bubbles/v2/viewport"
 	"github.com/charmbracelet/glamour"
 	chafa "github.com/ploMP4/chafa-go"
@@ -399,6 +402,21 @@ func (m Model) CopyVisible() error {
 		return fmt.Errorf("no visible content")
 	}
 	return clipboard.WriteAll(strings.Join(lines[top:bottom], "\n"))
+}
+
+func (m Model) ExportHTML() (string, error) {
+	if !m.isMarkdown || m.rawContent == "" {
+		return "", fmt.Errorf("not a markdown file")
+	}
+	var buf bytes.Buffer
+	if err := goldmark.Convert([]byte(m.rawContent), &buf); err != nil {
+		return "", err
+	}
+	outPath := strings.TrimSuffix(m.filePath, filepath.Ext(m.filePath)) + ".html"
+	if err := os.WriteFile(outPath, buf.Bytes(), 0644); err != nil {
+		return "", err
+	}
+	return outPath, nil
 }
 
 func (m Model) Search(query string) Model {

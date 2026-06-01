@@ -298,6 +298,16 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					a, c := a.flash("opened: " + filepath.Base(path))
 					return a, c
 				}
+			case "x":
+				if a.preview.IsMarkdown() {
+					outPath, err := a.preview.ExportHTML()
+					if err != nil {
+						a, c := a.flash("export failed: " + err.Error())
+						return a, c
+					}
+					a, c := a.flash("exported: " + filepath.Base(outPath))
+					return a, c
+				}
 			case "e":
 				if path := a.preview.FilePath(); path != "" {
 					editor := os.Getenv("EDITOR")
@@ -574,6 +584,7 @@ func (a App) helpView() string {
   Esc           Clear search
   m             Toggle markdown rendered/source
   e             Edit in $EDITOR
+  x             Export markdown to HTML
   o             Open in native viewer
   y             Copy file to clipboard
   Y             Copy visible to clipboard

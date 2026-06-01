@@ -64,6 +64,7 @@ xylem --theme dracula
 | `Esc` | Clear search results |
 | `m` | Toggle markdown rendered / source |
 | `e` | Edit file in `$EDITOR` |
+| `x` | Export markdown to HTML |
 | `o` | Open file in native viewer |
 | `y` | Copy file to clipboard |
 | `Y` | Copy visible lines to clipboard |

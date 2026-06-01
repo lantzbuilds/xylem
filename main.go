@@ -51,6 +51,7 @@ Key Bindings:
   r         Refresh directory
   m         Toggle markdown rendered/source (preview)
   e         Edit in $EDITOR (preview)
+  x         Export markdown to HTML (preview)
   o         Open file in native viewer (preview)
   y         Copy file to clipboard (preview)
   Y         Copy visible to clipboard (preview)
