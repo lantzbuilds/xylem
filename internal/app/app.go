@@ -550,10 +550,10 @@ func (a App) View() tea.View {
 	treeView := treeBorder.Render(a.tree.ViewString())
 	previewView := previewStyle.Render(a.preview.View())
 
-	content := lipgloss.JoinHorizontal(lipgloss.Top, treeView, previewView)
 	tabBar := a.buildTabBar(treeW, previewW)
+	content := lipgloss.JoinHorizontal(lipgloss.Top, treeView, previewView)
 	statusLine := a.buildStatusLine()
-	result := content + "\n" + tabBar + "\n" + statusLine
+	result := tabBar + "\n" + content + "\n" + statusLine
 
 	if a.showHelp {
 		helpView := a.helpView()
