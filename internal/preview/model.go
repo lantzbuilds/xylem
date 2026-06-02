@@ -421,57 +421,66 @@ func (m Model) ExportHTML() (string, error) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>%s</title>
 <style>
-  :root { color-scheme: light dark; }
+  :root {
+    color-scheme: light dark;
+    --text: #1a1a1a;
+    --bg: #fff;
+    --link: #0366d6;
+    --code-bg: #f5f5f5;
+    --border: #ddd;
+    --muted: #666;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --text: #e0e0e0;
+      --bg: #1a1a1a;
+      --link: #6db3f2;
+      --code-bg: #2d2d2d;
+      --border: #444;
+      --muted: #aaa;
+    }
+  }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     line-height: 1.6;
     max-width: 48rem;
     margin: 2rem auto;
     padding: 0 1rem;
-    color: #1a1a1a;
-    background: #fff;
-  }
-  @media (prefers-color-scheme: dark) {
-    body { color: #e0e0e0; background: #1a1a1a; }
-    a { color: #6db3f2; }
-    code, pre { background: #2d2d2d; }
-    table th { background: #2d2d2d; }
-    table td, table th { border-color: #444; }
-    blockquote { border-color: #555; color: #aaa; }
-    hr { border-color: #444; }
+    color: var(--text);
+    background: var(--bg);
   }
   h1, h2, h3, h4 { margin-top: 1.5em; margin-bottom: 0.5em; }
-  h1 { border-bottom: 1px solid #ddd; padding-bottom: 0.3em; }
-  a { color: #0366d6; text-decoration: none; }
+  h1 { border-bottom: 1px solid var(--border); padding-bottom: 0.3em; }
+  a { color: var(--link); text-decoration: none; }
   a:hover { text-decoration: underline; }
   code {
-    background: #f5f5f5;
+    background: var(--code-bg);
     padding: 0.15em 0.3em;
     border-radius: 3px;
     font-size: 0.9em;
   }
   pre {
-    background: #f5f5f5;
+    background: var(--code-bg);
     padding: 1em;
     border-radius: 6px;
     overflow-x: auto;
   }
   pre code { background: none; padding: 0; }
   blockquote {
-    border-left: 3px solid #ddd;
+    border-left: 3px solid var(--border);
     margin-left: 0;
     padding-left: 1em;
-    color: #666;
+    color: var(--muted);
   }
   table { border-collapse: collapse; width: 100%%; }
   table th, table td {
-    border: 1px solid #ddd;
+    border: 1px solid var(--border);
     padding: 0.5em 0.75em;
     text-align: left;
   }
-  table th { background: #f5f5f5; font-weight: 600; }
+  table th { background: var(--code-bg); font-weight: 600; }
   img { max-width: 100%%; }
-  hr { border: none; border-top: 1px solid #ddd; margin: 2em 0; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2em 0; }
 </style>
 </head>
 <body>

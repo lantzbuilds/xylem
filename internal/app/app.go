@@ -547,8 +547,8 @@ func (a App) View() tea.View {
 		BorderStyle(lipgloss.NormalBorder()).
 		BorderForeground(lipgloss.Color(previewBorderColor))
 
-	treeView := treeBorder.Render(a.tree.ViewString())
-	previewView := previewStyle.Render(a.preview.View())
+	treeView := clipLines(treeBorder.Render(a.tree.ViewString()), contentHeight)
+	previewView := clipLines(previewStyle.Render(a.preview.View()), contentHeight)
 
 	tabBar := a.buildTabBar(treeW, previewW)
 	content := lipgloss.JoinHorizontal(lipgloss.Top, treeView, previewView)
@@ -638,6 +638,17 @@ func (a App) collectFiles() []string {
 		return nil
 	})
 	return files
+}
+
+func clipLines(s string, maxLines int) string {
+	lines := strings.Split(s, "\n")
+	if len(lines) > maxLines {
+		lines = lines[:maxLines]
+	}
+	for len(lines) < maxLines {
+		lines = append(lines, "")
+	}
+	return strings.Join(lines, "\n")
 }
 
 func placeCentered(bg, overlay string, width, height int) string {
