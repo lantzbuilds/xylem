@@ -131,6 +131,9 @@ func (m Model) View() string {
 	if boxW < 40 {
 		boxW = 40
 	}
+	if boxW > m.width-4 {
+		boxW = m.width - 4
+	}
 	maxResults := 10
 
 	border := lipgloss.NewStyle().
@@ -144,7 +147,7 @@ func (m Model) View() string {
 
 	var lines []string
 	lines = append(lines, input)
-	lines = append(lines, strings.Repeat("─", boxW-2))
+	lines = append(lines, strings.Repeat("─", boxW-4))
 
 	end := len(m.matches)
 	if end > maxResults {

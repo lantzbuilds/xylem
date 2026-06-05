@@ -229,6 +229,13 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			a.globalSearch = a.globalSearch.Open()
 			a.focus = focusGlobalSearch
 			return a, nil
+		case "ctrl+p":
+			files := a.tree.FilePaths()
+			a.finder = a.finder.SetFiles(files)
+			a.finder = a.finder.SetSize(a.width, a.height)
+			a.finder = a.finder.Open()
+			a.focus = focusFinder
+			return a, nil
 		case "?":
 			a.showHelp = !a.showHelp
 			return a, nil
@@ -581,6 +588,7 @@ func (a App) helpView() string {
   Global
   ──────────────────────
   Tab       Switch focus
+  Ctrl+p    Find file by name
   #         Line numbers
   w         Word wrap
   t         Cycle theme

@@ -2,6 +2,7 @@ package tree
 
 import (
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -249,6 +250,38 @@ func (m Model) ViewString() string {
 	}
 
 	return b.String()
+}
+
+func (m Model) FilePaths() []string {
+	var paths []string
+	filepath.Walk(m.rootPath, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+		name := info.Name()
+		if info.IsDir() {
+			if name == ".git" || name == "node_modules" || name == "vendor" || name == "dist" {
+				return filepath.SkipDir
+			}
+			if m.ignore != nil && name != "." {
+				rel, _ := filepath.Rel(m.rootPath, path)
+				if m.ignore.MatchesPath(rel + "/") {
+					return filepath.SkipDir
+				}
+			}
+			return nil
+		}
+		rel, err := filepath.Rel(m.rootPath, path)
+		if err != nil {
+			return nil
+		}
+		if m.ignore != nil && m.ignore.MatchesPath(rel) {
+			return nil
+		}
+		paths = append(paths, rel)
+		return nil
+	})
+	return paths
 }
 
 func (m Model) SelectedPath() string {
