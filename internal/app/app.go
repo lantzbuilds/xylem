@@ -18,9 +18,11 @@ import (
 	"github.com/lantzbuilds/xylem/internal/statusbar"
 	"github.com/lantzbuilds/xylem/internal/theme"
 	itree "github.com/lantzbuilds/xylem/internal/tree"
+	"github.com/lantzbuilds/xylem/internal/watcher"
 )
 
 type flashTickMsg struct{}
+type fileChangedMsg struct{}
 
 type editorFinishedMsg struct {
 	path string
@@ -53,6 +55,7 @@ type App struct {
 	flashTicks  int
 	searchMode  bool
 	searchBuf   string
+	watcher    *watcher.Watcher
 }
 
 func NewApp(path string, noLines bool, themeName string, version string) App {
@@ -82,11 +85,32 @@ func NewApp(path string, noLines bool, themeName string, version string) App {
 	a.finder = finder.New(nil, 120, 20)
 	a.globalSearch = globalsearch.New(120, 40, absPath)
 
+	if w, err := watcher.New(absPath); err == nil {
+		a.watcher = w
+	}
+
 	return a
 }
 
 func (a App) Init() tea.Cmd {
-	return a.tree.Init()
+	cmds := []tea.Cmd{a.tree.Init()}
+	if a.watcher != nil {
+		cmds = append(cmds, a.waitForChange())
+	}
+	return tea.Batch(cmds...)
+}
+
+func (a App) waitForChange() tea.Cmd {
+	return func() tea.Msg {
+		if a.watcher == nil {
+			return nil
+		}
+		_, ok := <-a.watcher.Events
+		if !ok {
+			return nil
+		}
+		return fileChangedMsg{}
+	}
 }
 
 func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -96,6 +120,13 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			a.preview = a.preview.LoadFile(msg.path)
 		}
 		return a, nil
+
+	case fileChangedMsg:
+		a.tree = a.tree.Refresh()
+		if path := a.preview.FilePath(); path != "" {
+			a.preview = a.preview.LoadFile(path)
+		}
+		return a, a.waitForChange()
 
 	case flashTickMsg:
 		a.flashTicks--
@@ -170,6 +201,9 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch msg.String() {
 			case "?", "esc", "q", "ctrl+c":
 				if msg.String() == "q" || msg.String() == "ctrl+c" {
+					if a.watcher != nil {
+						a.watcher.Close()
+					}
 					return a, tea.Quit
 				}
 				a.showHelp = false
@@ -198,6 +232,9 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		switch msg.String() {
 		case "q", "ctrl+c":
+			if a.watcher != nil {
+				a.watcher.Close()
+			}
 			return a, tea.Quit
 		case "tab":
 			if a.focus == focusTree {

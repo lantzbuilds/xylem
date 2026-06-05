@@ -138,13 +138,7 @@ func (m Model) handleKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.ensureVisible()
 		return m, m.selectCmd()
 	case "r":
-		m.refresh()
-		if m.cursor > len(m.flatNodes())-1 {
-			m.cursor = len(m.flatNodes()) - 1
-		}
-		if m.cursor < 0 {
-			m.cursor = 0
-		}
+		m = m.Refresh()
 		return m, m.selectCmd()
 	}
 
@@ -182,8 +176,15 @@ func (m Model) flatNodes() []*Node {
 	return all
 }
 
-func (m *Model) refresh() {
+func (m Model) Refresh() Model {
 	m.refreshNode(m.root)
+	if m.cursor > len(m.flatNodes())-1 {
+		m.cursor = len(m.flatNodes()) - 1
+	}
+	if m.cursor < 0 {
+		m.cursor = 0
+	}
+	return m
 }
 
 func (m *Model) refreshNode(n *Node) {

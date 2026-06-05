@@ -43,12 +43,13 @@ Key Bindings:
   Tab       Switch focus (tree/preview)
   j/k       Navigate / scroll
   h/l       Collapse / expand directory
-  /         Search in file (preview) / file finder (tree)
+  Ctrl+p    Find file by name (fuzzy)
+  /         Search in file (preview) / all files (tree)
   n/N       Next / prev match (after search)
   #         Toggle line numbers
   w         Toggle word wrap
   t         Cycle theme
-  r         Refresh directory
+  r         Refresh directory (also auto-refreshes on changes)
   m         Toggle markdown rendered/source (preview)
   e         Edit in $EDITOR (preview)
   x         Export markdown to HTML (preview)
