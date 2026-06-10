@@ -25,6 +25,11 @@ import (
 type flashTickMsg struct{}
 type fileChangedMsg struct{}
 
+type defResultMsg struct {
+	symbol  string
+	results []definition.Result
+}
+
 type editorFinishedMsg struct {
 	path string
 	err  error
@@ -129,6 +134,9 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			a.preview = a.preview.LoadFile(msg.path)
 		}
 		return a, nil
+
+	case defResultMsg:
+		return a.handleDefResult(msg)
 
 	case fileChangedMsg:
 		a.tree = a.tree.Refresh()
@@ -587,9 +595,19 @@ func openNative(path string) *exec.Cmd {
 }
 
 func (a App) gotoDef(symbol string) (App, tea.Cmd) {
-	results := definition.Search(a.rootPath, symbol)
-	if len(results) == 0 {
-		return a.flash("no definition found: " + symbol)
+	root := a.rootPath
+	cmd := func() tea.Msg {
+		results := definition.Search(root, symbol)
+		return defResultMsg{symbol: symbol, results: results}
+	}
+	a.flashMsg = "searching: " + symbol + "..."
+	a.flashTicks = 0
+	return a, cmd
+}
+
+func (a App) handleDefResult(msg defResultMsg) (App, tea.Cmd) {
+	if len(msg.results) == 0 {
+		return a.flash("no definition found: " + msg.symbol)
 	}
 
 	a.jumpStack = append(a.jumpStack, jumpLocation{
@@ -597,12 +615,12 @@ func (a App) gotoDef(symbol string) (App, tea.Cmd) {
 		offset: a.preview.ScrollOffset(),
 	})
 
-	if len(results) == 1 {
-		return a.jumpTo(results[0])
+	if len(msg.results) == 1 {
+		return a.jumpTo(msg.results[0])
 	}
 
 	var globalResults []globalsearch.FlatResult
-	for _, r := range results {
+	for _, r := range msg.results {
 		globalResults = append(globalResults, globalsearch.FlatResult{
 			File: r.File,
 			Line: r.Line,
@@ -610,7 +628,7 @@ func (a App) gotoDef(symbol string) (App, tea.Cmd) {
 		})
 	}
 	a.globalSearch = a.globalSearch.SetSize(a.width, a.height)
-	a.globalSearch = a.globalSearch.OpenWithResults(symbol, globalResults)
+	a.globalSearch = a.globalSearch.OpenWithResults(msg.symbol, globalResults)
 	a.focus = focusGlobalSearch
 	return a, nil
 }
