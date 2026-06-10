@@ -56,6 +56,29 @@ func (m Model) Open() Model {
 	return m
 }
 
+type FlatResult struct {
+	File string
+	Line int
+	Text string
+}
+
+func (m Model) OpenWithResults(query string, results []FlatResult) Model {
+	m.active = true
+	m.query = query
+	m.searching = false
+	m.cursor = 0
+	m.scrollOff = 0
+	m.results = nil
+	m.flatItems = nil
+	for _, r := range results {
+		m.flatItems = append(m.flatItems, flatItem{
+			file:  r.File,
+			match: search.Match{Line: r.Line, Text: r.Text, File: r.File},
+		})
+	}
+	return m
+}
+
 func (m Model) Close() Model {
 	m.active = false
 	m.query = ""

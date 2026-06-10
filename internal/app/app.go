@@ -12,6 +12,7 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 
+	"github.com/lantzbuilds/xylem/internal/definition"
 	"github.com/lantzbuilds/xylem/internal/finder"
 	"github.com/lantzbuilds/xylem/internal/globalsearch"
 	"github.com/lantzbuilds/xylem/internal/preview"
@@ -56,6 +57,14 @@ type App struct {
 	searchMode  bool
 	searchBuf   string
 	watcher    *watcher.Watcher
+	gotoDefMode bool
+	gotoDefBuf  string
+	jumpStack   []jumpLocation
+}
+
+type jumpLocation struct {
+	file   string
+	offset int
 }
 
 func NewApp(path string, noLines bool, themeName string, version string) App {
@@ -172,6 +181,34 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			default:
 				if msg.Text != "" {
 					a.searchBuf += msg.Text
+				}
+				return a, nil
+			}
+		}
+
+		// Go-to-definition input mode
+		if a.gotoDefMode {
+			switch msg.String() {
+			case "escape", "esc":
+				a.gotoDefMode = false
+				a.gotoDefBuf = ""
+				return a, nil
+			case "enter":
+				symbol := a.gotoDefBuf
+				a.gotoDefMode = false
+				a.gotoDefBuf = ""
+				if symbol != "" {
+					return a.gotoDef(symbol)
+				}
+				return a, nil
+			case "backspace":
+				if len(a.gotoDefBuf) > 0 {
+					a.gotoDefBuf = a.gotoDefBuf[:len(a.gotoDefBuf)-1]
+				}
+				return a, nil
+			default:
+				if msg.Text != "" {
+					a.gotoDefBuf += msg.Text
 				}
 				return a, nil
 			}
@@ -377,6 +414,12 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				a, cmd := a.flash("copied visible lines to clipboard")
 				return a, cmd
+			case "ctrl+]":
+				a.gotoDefMode = true
+				a.gotoDefBuf = ""
+				return a, nil
+			case "ctrl+o":
+				return a.jumpBack()
 			}
 			updated, cmd := a.preview.Update(msg)
 			a.preview = updated
@@ -502,6 +545,22 @@ func (a App) buildStatusLine() string {
 		return line
 	}
 
+	if a.gotoDefMode {
+		searchStyle := lipgloss.NewStyle().
+			Background(lipgloss.Color("236")).
+			Foreground(lipgloss.Color("252"))
+		promptStyle := lipgloss.NewStyle().
+			Background(lipgloss.Color("236")).
+			Foreground(lipgloss.Color("114")).
+			Bold(true)
+		line := promptStyle.Render(" gd: ") + searchStyle.Render(a.gotoDefBuf+"█")
+		gap := a.width - lipgloss.Width(line)
+		if gap > 0 {
+			line += searchStyle.Render(strings.Repeat(" ", gap))
+		}
+		return line
+	}
+
 	if a.flashMsg != "" {
 		flashStyle := lipgloss.NewStyle().
 			Foreground(lipgloss.Color("229")).
@@ -525,6 +584,69 @@ func openNative(path string) *exec.Cmd {
 		return exec.Command("cmd", "/c", "start", path)
 	}
 	return nil
+}
+
+func (a App) gotoDef(symbol string) (App, tea.Cmd) {
+	results := definition.Search(a.rootPath, symbol)
+	if len(results) == 0 {
+		return a.flash("no definition found: " + symbol)
+	}
+
+	a.jumpStack = append(a.jumpStack, jumpLocation{
+		file:   a.preview.FilePath(),
+		offset: a.preview.ScrollOffset(),
+	})
+
+	if len(results) == 1 {
+		return a.jumpTo(results[0])
+	}
+
+	var globalResults []globalsearch.FlatResult
+	for _, r := range results {
+		globalResults = append(globalResults, globalsearch.FlatResult{
+			File: r.File,
+			Line: r.Line,
+			Text: r.Text,
+		})
+	}
+	a.globalSearch = a.globalSearch.SetSize(a.width, a.height)
+	a.globalSearch = a.globalSearch.OpenWithResults(symbol, globalResults)
+	a.focus = focusGlobalSearch
+	return a, nil
+}
+
+func (a App) jumpTo(r definition.Result) (App, tea.Cmd) {
+	fullPath := filepath.Join(a.rootPath, r.File)
+	a.preview = a.preview.LoadFile(fullPath)
+	a.preview = a.preview.GotoLine(r.Line)
+	a.tree = a.tree.NavigateTo(fullPath)
+	a.statusbar = a.statusbar.SetFile(
+		r.File,
+		a.preview.Language(),
+		a.preview.LineCount(),
+	)
+	return a.flash(fmt.Sprintf("→ %s:%d", r.File, r.Line+1))
+}
+
+func (a App) jumpBack() (App, tea.Cmd) {
+	if len(a.jumpStack) == 0 {
+		return a.flash("no jump history")
+	}
+	loc := a.jumpStack[len(a.jumpStack)-1]
+	a.jumpStack = a.jumpStack[:len(a.jumpStack)-1]
+
+	if loc.file != "" {
+		a.preview = a.preview.LoadFile(loc.file)
+		a.preview = a.preview.GotoLine(loc.offset)
+		a.tree = a.tree.NavigateTo(loc.file)
+		rel, _ := filepath.Rel(a.rootPath, loc.file)
+		a.statusbar = a.statusbar.SetFile(
+			rel,
+			a.preview.Language(),
+			a.preview.LineCount(),
+		)
+	}
+	return a.flash("← back")
 }
 
 func (a App) flash(msg string) (App, tea.Cmd) {
@@ -656,6 +778,8 @@ func (a App) helpView() string {
   o             Open in native viewer
   y             Copy file to clipboard
   Y             Copy visible to clipboard
+  Ctrl+]        Go to definition
+  Ctrl+o        Jump back
 `
 	style := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).

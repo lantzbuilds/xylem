@@ -56,6 +56,8 @@ Key Bindings:
   o         Open file in native viewer (preview)
   y         Copy file to clipboard (preview)
   Y         Copy visible to clipboard (preview)
+  Ctrl+]    Go to definition (preview)
+  Ctrl+o    Jump back (preview)
   Esc       Clear search / exit fullscreen
   ?         Full help overlay
   q         Quit

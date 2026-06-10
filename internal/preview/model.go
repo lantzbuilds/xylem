@@ -566,6 +566,16 @@ func (m Model) FilePath() string   { return m.filePath }
 func (m Model) Language() string   { return m.language }
 func (m Model) LineCount() int     { return m.lineCount }
 func (m Model) ShowingLines() bool { return m.showLineNumbers }
+func (m Model) ScrollOffset() int  { return m.viewport.YOffset() }
+
+func (m Model) GotoLine(line int) Model {
+	center := line - m.viewport.Height()/2
+	if center < 0 {
+		center = 0
+	}
+	m.viewport.SetYOffset(center)
+	return m
+}
 
 func isBinary(data []byte) bool {
 	if len(data) == 0 {
