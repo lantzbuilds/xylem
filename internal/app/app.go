@@ -141,7 +141,11 @@ func (a App) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case fileChangedMsg:
 		a.tree = a.tree.Refresh()
 		if path := a.preview.FilePath(); path != "" {
+			query := a.preview.SearchQuery()
 			a.preview = a.preview.LoadFile(path)
+			if query != "" {
+				a.preview = a.preview.Search(query)
+			}
 		}
 		return a, a.waitForChange()
 
