@@ -616,7 +616,7 @@ func (a App) handleDefResult(msg defResultMsg) (App, tea.Cmd) {
 	})
 
 	if len(msg.results) == 1 {
-		return a.jumpTo(msg.results[0])
+		return a.jumpTo(msg.results[0], msg.symbol)
 	}
 
 	var globalResults []globalsearch.FlatResult
@@ -633,9 +633,10 @@ func (a App) handleDefResult(msg defResultMsg) (App, tea.Cmd) {
 	return a, nil
 }
 
-func (a App) jumpTo(r definition.Result) (App, tea.Cmd) {
+func (a App) jumpTo(r definition.Result, symbol string) (App, tea.Cmd) {
 	fullPath := filepath.Join(a.rootPath, r.File)
 	a.preview = a.preview.LoadFile(fullPath)
+	a.preview = a.preview.Search(symbol)
 	a.preview = a.preview.GotoLine(r.Line)
 	a.tree = a.tree.NavigateTo(fullPath)
 	a.statusbar = a.statusbar.SetFile(
