@@ -43,7 +43,7 @@ Current version: **v0.15.0** | Bubble Tea v2 | chafa-go image rendering
 - `Ctrl+o` pops jump stack to return to previous location
 - `internal/definition` package handles pattern matching
 
-### Tier 2: Large scope, high differentiator
+### Next up: Git integration
 
 **#12 Git diff: side-by-side commit comparison**
 - New rendering mode reusing the split-pane layout (old | new)
@@ -53,20 +53,51 @@ Current version: **v0.15.0** | Bubble Tea v2 | chafa-go image rendering
 - Could also support: working tree vs HEAD, staged vs unstaged
 - Big scope — needs dedicated session
 
-### Tier 3: Blocked or niche
+**Git blame annotations**
+- Toggle with `b` key — inline gutter showing author, relative time, per line
+- Shell out to `git blame --porcelain`, parse into per-line metadata
+- Render as dimmed column between line numbers and code
+- Complements go-to-definition: "who wrote this" alongside "where is it defined"
+
+### Differentiators to explore
+
+**Zero-friction entry points**
+- Open a GitHub repo URL directly (`xylem https://github.com/...`)
+- Browse a tarball / zip without extracting
+- These are things neovim needs plugins and config for
+
+**Richer visual previews**
+- Data file rendering: CSV/TSV as aligned columns, JSON/YAML with collapsible sections
+- Diagram rendering: Mermaid/D2 to ASCII or sixel
+- SVG support (needs rsvg-convert or similar)
+
+### Parked
 
 **#8 PDF rasterization via Kitty graphics protocol**
-- Blocked by same split-pane ANSI issue as image rendering
-- Text extraction (v0.6.0) is the functional workaround
-- Would need: Kitty protocol escape sequences that don't conflict with lipgloss border rendering
-- Options: shell out to `pdftoppm`, or wait for lipgloss/BT to support graphics layers
-- Low urgency — text extraction + `o` to open in Preview covers most cases
+- Blocked by split-pane ANSI issue with lipgloss border rendering
+- Text extraction (v0.6.0) + `o` to open in Preview covers most cases
+- Revisit when lipgloss/BT supports graphics layers
 
 **#5 Remote filesystem support**
 - SSH, GitHub repos, S3 browsing
-- Needs pluggable filesystem abstraction layer
 - Major architecture change, unclear demand
 - Park until there's a concrete use case driving it
+
+## Strategic positioning
+
+Xylem is a **zero-config code browser**, not an editor. The value is instant, visual exploration of any codebase without setup. Features like `e` (open in $EDITOR) are escape hatches, not an attempt to become an editor.
+
+**Where xylem wins over neovim/VS Code:**
+- Works on first run — no config, no plugins, no LSP setup
+- Visual previews (images, markdown, PDF) that editors don't do well natively
+- Purpose-built for reading and navigating, not editing — lower cognitive load
+
+**Where it should not compete:**
+- Editing, refactoring, diagnostics — that's what `e` hands off to
+- LSP-powered intelligence — regex definition search is "good enough" for browsing; tree-sitter/ctags would be incremental improvement, not worth the dependency
+- Plugin ecosystem — xylem is a single binary, keep it that way
+
+**Guiding principle:** if a feature makes sense for someone *reading* code, it belongs. If it only makes sense for someone *writing* code, it doesn't. Git diff and blame are reader features. Multi-cursor editing is not.
 
 ## Known limitations
 
