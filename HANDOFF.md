@@ -1,6 +1,6 @@
 # Xylem Handoff — Remaining Work
 
-Current version: **v0.15.0** | Bubble Tea v2 | chafa-go image rendering
+Current version: **v0.16.0** | Bubble Tea v2 | chafa-go image rendering
 
 ## What shipped this cycle
 
@@ -25,6 +25,7 @@ Current version: **v0.15.0** | Bubble Tea v2 | chafa-go image rendering
 | v0.13.0 | Auto-refresh file watcher via fsnotify (closes #4) |
 | v0.14.0 | Go to definition (Ctrl+]) + jump back (Ctrl+o) (closes #13) |
 | v0.15.0 | Stable release: async def search, symbol highlighting, watcher fixes |
+| v0.16.0 | Gitignored files shown dimmed in tree, sorted to bottom |
 
 ## Open issues — prioritized
 
@@ -58,6 +59,12 @@ Current version: **v0.15.0** | Bubble Tea v2 | chafa-go image rendering
 - Shell out to `git blame --porcelain`, parse into per-line metadata
 - Render as dimmed column between line numbers and code
 - Complements go-to-definition: "who wrote this" alongside "where is it defined"
+
+**Git status coloring in tree**
+- Extends the `Ignored` flag pattern from v0.16.0 to richer git state
+- Modified files (green), untracked-but-not-ignored (grey), staged (yellow)
+- Derive from `git status --porcelain` at startup, store as node flags
+- Natural pairing with blame and diff — the tree becomes git-aware end to end
 
 ### Differentiators to explore
 
@@ -116,4 +123,5 @@ Xylem is a **zero-config code browser**, not an editor. The value is instant, vi
 - **Definition search** (`internal/definition`): regex patterns compiled per-search with `fmt.Sprintf` to inject the escaped symbol. Runs async via `tea.Cmd` to avoid blocking the TUI on large codebases. Results flow back as `defResultMsg`.
 - **Jump stack**: `[]jumpLocation` in App stores (file, scrollOffset) pairs. Pushed on `Ctrl+]` jump, popped on `Ctrl+o`.
 - **Fuzzy finder** (`internal/finder`): uses `sahilm/fuzzy` (fzf-style scoring). `Ctrl+p` collects file paths via `tree.FilePaths()` which walks the filesystem independently of tree expand state.
+- **Git-aware tree** (`internal/tree/node.go`): `Node.Ignored` flag marks gitignored entries. Ignored nodes render with `ignoredSty` (color 240), sort to bottom of each directory. Children inherit parent's ignored state. Only `.git/` is fully excluded. This flag pattern extends to future git state coloring (modified, untracked, staged).
 - **Build note**: use `go install .` to update the binary on `$GOPATH/bin`. `go build ./...` only verifies compilation.
