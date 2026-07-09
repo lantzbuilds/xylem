@@ -92,22 +92,31 @@ Current version: **v0.16.0** | Bubble Tea v2 | chafa-go image rendering
 
 ## Strategic positioning
 
-Xylem is a **zero-config code browser**, not an editor. The value is instant, visual exploration of any codebase without setup. Features like `e` (open in $EDITOR) are escape hatches, not an attempt to become an editor.
+Xylem is a **zero-config code reader** — not an editor, not a file manager. The value is instant, visual exploration of any codebase without setup. Features like `e` (open in $EDITOR) are escape hatches, not an attempt to become an editor.
 
-**Where xylem wins over neovim/VS Code:**
-- Works on first run — no config, no plugins, no LSP setup
-- Visual previews (images, markdown, PDF) that editors don't do well natively
-- Purpose-built for reading and navigating, not editing — lower cognitive load
+**Project status:** originally built as a personal daily-driver code explorer because nothing quite like it existed. Author is adopting mature tools (yazi for file management, helix for editing) as daily drivers, and keeping xylem as a focused niche project — complete the code-reading feature set, then promote it to the narrow audience that wants exactly this. Not competing to be a general daily-driver file tool; that race is lost to yazi.
 
-**Where it should not compete:**
-- Editing, refactoring, diagnostics — that's what `e` hands off to
-- LSP-powered intelligence — regex definition search is "good enough" for browsing; tree-sitter/ctags would be incremental improvement, not worth the dependency
-- Plugin ecosystem — xylem is a single binary, keep it that way
+**The competitive map — three tools, three jobs:**
+- **helix / neovim** own *editing* (LSP, refactoring, multi-cursor). Xylem hands off to them via `e`.
+- **yazi** owns *file management* (copy/move/delete/rename, Miller-column navigation, plugin ecosystem, Rust+async speed). Xylem does none of this — read-only by design.
+- **xylem** owns *code reading*: persistent tree+preview split, go-to-definition, git-aware exploration. "Point it at an unfamiliar repo and understand it fast, before you edit anything."
 
-**Guiding principle:** if a feature makes sense for someone *reading* code, it belongs. If it only makes sense for someone *writing* code, it doesn't. Git diff and blame are reader features. Multi-cursor editing is not.
+**Where xylem is distinct:**
+- Works on first run — no config, no plugins, no LSP setup (helix/nvim need setup; yazi needs plugins for code features)
+- Code-navigation-first: go-to-definition and the persistent split are the whole point, not a supporting preview pane (yazi's preview is secondary to file ops)
+- Single static binary, nothing to configure
+
+**Where it must NOT compete (deliberately out of scope):**
+- Editing, refactoring, diagnostics → `e` hands off to helix/nvim
+- File operations (copy/move/delete/rename) → that's yazi's job; keeping xylem read-only is a feature, not a gap
+- LSP-powered intelligence → regex definition search is "good enough" for browsing; tree-sitter/ctags is incremental, not worth the dependency
+- Plugin ecosystem → single binary, keep it that way
+
+**Guiding principle:** if a feature makes sense for someone *reading* code, it belongs. If it only makes sense for someone *writing* or *managing* files, it doesn't. Git diff/blame/status are reader features. Multi-cursor editing and bulk rename are not.
 
 ## Known limitations
 
+- **Image fidelity vs. yazi**: xylem renders images as Unicode block mosaics via chafa. yazi renders true raster images via the Kitty graphics protocol in supporting terminals (Ghostty, Kitty, WezTerm), which is why it looks dramatically sharper. This is NOT a Go-vs-Rust ecosystem gap — Go can emit Kitty/Sixel/iTerm2 escape sequences (e.g. `BourgeoisBear/rasterm`). The real blocker is Bubble Tea: it owns the screen as a cell grid and repaints it every frame, with no concept of a graphics layer. A Kitty image placed in a pane gets clobbered on the next repaint, and lipgloss's per-line ANSI resets interrupt the image escape stream. yazi avoids this because it built a custom image-compositing layer on top of ratatui. Realistic path to parity: detect Kitty-protocol terminals and use it ONLY in fullscreen mode (Enter), where BT isn't compositing borders around the image — true raster in fullscreen, keep chafa for the split-pane thumbnail. Verify the current best Go library before committing.
 - **Image split-pane banding**: chafa output interacts with lipgloss border styling, causing horizontal stripes on some images in split view. Fullscreen (Enter) renders cleanly. Root cause: lipgloss wraps each line in ANSI reset/style sequences that interrupt chafa's color state.
 - **PDF text extraction quality**: varies by PDF structure. Simple single-column PDFs are readable; multi-column and image-based PDFs produce garbled or no text. Rasterization (#8) would fix this.
 - **SVG not supported**: listed in image extensions but Go's `image` package can't decode SVG. Would need rsvg-convert or similar.
