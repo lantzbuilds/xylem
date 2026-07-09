@@ -47,9 +47,25 @@ func TestLoadChildrenWithGitIgnore(t *testing.T) {
 	n := NewNode(dir, filepath.Base(dir), true)
 	n.LoadChildren(gi)
 
+	var foundIgnored, foundKept bool
 	for _, child := range n.Children {
 		if child.Name == "ignored" {
-			t.Error("gitignored directory should be excluded")
+			foundIgnored = true
+			if !child.Ignored {
+				t.Error("gitignored directory should be marked Ignored")
+			}
 		}
+		if child.Name == "kept" {
+			foundKept = true
+			if child.Ignored {
+				t.Error("non-ignored directory should not be marked Ignored")
+			}
+		}
+	}
+	if !foundIgnored {
+		t.Error("ignored directory should be present in children")
+	}
+	if !foundKept {
+		t.Error("kept directory should be present in children")
 	}
 }

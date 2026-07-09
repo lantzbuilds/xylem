@@ -23,9 +23,10 @@ type Model struct {
 	width     int
 	height    int
 	offset    int
-	cursorSty lipgloss.Style
-	dirSty    lipgloss.Style
-	fileSty   lipgloss.Style
+	cursorSty  lipgloss.Style
+	dirSty     lipgloss.Style
+	fileSty    lipgloss.Style
+	ignoredSty lipgloss.Style
 }
 
 func NewModel(path string, width, height int) Model {
@@ -45,9 +46,10 @@ func NewModel(path string, width, height int) Model {
 		ignore:    ic,
 		width:     width,
 		height:    height,
-		cursorSty: lipgloss.NewStyle().Background(lipgloss.Color("62")).Foreground(lipgloss.Color("230")),
-		dirSty:    lipgloss.NewStyle().Foreground(lipgloss.Color("75")).Bold(true),
-		fileSty:   lipgloss.NewStyle(),
+		cursorSty:  lipgloss.NewStyle().Background(lipgloss.Color("62")).Foreground(lipgloss.Color("230")),
+		dirSty:     lipgloss.NewStyle().Foreground(lipgloss.Color("75")).Bold(true),
+		fileSty:    lipgloss.NewStyle(),
+		ignoredSty: lipgloss.NewStyle().Foreground(lipgloss.Color("240")),
 	}
 }
 
@@ -233,11 +235,19 @@ func (m Model) ViewString() string {
 				icon = "▶ "
 			}
 			line = fmt.Sprintf("%s%s%s", indent, icon, node.Name)
-			line = m.dirSty.Render(line)
+			if node.Ignored {
+				line = m.ignoredSty.Render(line)
+			} else {
+				line = m.dirSty.Render(line)
+			}
 		} else {
 			icon = "  "
 			line = fmt.Sprintf("%s%s%s", indent, icon, node.Name)
-			line = m.fileSty.Render(line)
+			if node.Ignored {
+				line = m.ignoredSty.Render(line)
+			} else {
+				line = m.fileSty.Render(line)
+			}
 		}
 
 		if i == m.cursor {

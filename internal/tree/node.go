@@ -16,6 +16,7 @@ type Node struct {
 	Name     string
 	IsDir    bool
 	Expanded bool
+	Ignored  bool
 	Children []*Node
 }
 
@@ -27,11 +28,6 @@ func NewNode(path, name string, isDir bool) *Node {
 	}
 }
 
-var defaultIgnore = map[string]bool{
-	".git":         true,
-	"node_modules": true,
-}
-
 func (n *Node) LoadChildren(ignore IgnoreChecker) error {
 	entries, err := os.ReadDir(n.Path)
 	if err != nil {
@@ -41,26 +37,33 @@ func (n *Node) LoadChildren(ignore IgnoreChecker) error {
 	n.Children = nil
 	for _, entry := range entries {
 		name := entry.Name()
+		if name == ".git" {
+			continue
+		}
 		fullPath := filepath.Join(n.Path, name)
 
-		if ignore != nil {
+		child := NewNode(fullPath, name, entry.IsDir())
+
+		if n.Ignored {
+			child.Ignored = true
+		} else if ignore != nil {
 			rel, _ := filepath.Rel(n.Path, fullPath)
 			if entry.IsDir() {
 				rel += "/"
 			}
 			if ignore.MatchesPath(rel) {
-				continue
+				child.Ignored = true
 			}
-		} else if defaultIgnore[name] {
-			continue
 		}
 
-		child := NewNode(fullPath, name, entry.IsDir())
 		n.Children = append(n.Children, child)
 	}
 
 	sort.Slice(n.Children, func(i, j int) bool {
 		a, b := n.Children[i], n.Children[j]
+		if a.Ignored != b.Ignored {
+			return !a.Ignored
+		}
 		if a.IsDir != b.IsDir {
 			return a.IsDir
 		}
